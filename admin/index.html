@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusFine — Admin Portal</title>
+<link rel="stylesheet" href="../css/theme.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── ADMIN LAYOUT ── */
+body { background: var(--surface-0); color: var(--text-on-dark); display: flex; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 230px; flex-shrink: 0;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-dark);
+  display: flex; flex-direction: column;
+  height: 100vh; overflow-y: auto;
+}
+.sidebar-brand {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border-dark);
+}
+.sidebar-brand .gov-strip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted-d);
+  margin-bottom: 10px;
+}
+.sidebar-brand .flag-mini { display: flex; flex-direction: column; gap: 2px; width: 18px; }
+.sidebar-brand .flag-mini span { height: 3px; display: block; border-radius: 1px; }
+.sidebar-brand .flag-mini .f1 { background: #000; }
+.sidebar-brand .flag-mini .f2 { background: #ce1126; }
+.sidebar-brand .flag-mini .f3 { background: #339e35; }
+.brand-row { display: flex; align-items: center; gap: 10px; }
+.brand-eagle-sm {
+  width: 36px; height: 36px;
+  background: var(--navy-mid); border: 2px solid var(--gold);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.brand-name { font-size: 15px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }
+.brand-name span { color: var(--gold-bright); }
+.brand-sub  { font-size: 9px; color: var(--text-muted-d); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.nav-group-label {
+  padding: 14px 14px 4px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--text-muted-d);
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin: 1px 8px;
+  border-radius: var(--radius); color: var(--text-muted-d);
+  font-size: 13px; font-weight: 500;
+  transition: all 0.14s; cursor: pointer; user-select: none;
+}
+.nav-item:hover  { background: var(--surface-3); color: var(--text-on-dark); }
+.nav-item.active { background: rgba(200,150,12,0.12); color: var(--gold-bright); }
+.nav-item .ni    { font-size: 15px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--red);
+  color: white; font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 10px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-dark);
+  padding: 14px 14px;
+}
+.user-row { display: flex; align-items: center; gap: 10px; }
+.user-av {
+  width: 34px; height: 34px; border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--navy-light), var(--red));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; color: white; flex-shrink: 0;
+}
+.user-name { font-size: 13px; font-weight: 600; color: var(--text-on-dark); }
+.user-role { font-size: 10px; color: var(--text-muted-d); }
+.logout-btn {
+  margin-left: auto; background: none; border: none;
+  color: var(--text-muted-d); font-size: 16px;
+  padding: 4px; border-radius: 4px; transition: color 0.15s;
+}
+.logout-btn:hover { color: var(--red-bright); }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* TOPBAR */
+.topbar {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 0 24px; height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--text-on-dark); letter-spacing: -0.01em; }
+.topbar-crumb { font-size: 11px; color: var(--text-muted-d); margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.filter-select {
+  background: var(--surface-2); border: 1px solid var(--border-dark);
+  color: var(--text-on-dark); font-family: var(--font-body);
+  font-size: 12px; padding: 7px 12px; border-radius: var(--radius);
+  outline: none; cursor: pointer;
+}
+.date-range {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1px solid var(--border-dark);
+  border-radius: var(--radius); padding: 5px 10px;
+  font-size: 12px; color: var(--text-on-dark);
+}
+.date-range input {
+  background: none; border: none; color: var(--text-on-dark);
+  font-family: var(--font-mono); font-size: 11px; outline: none; width: 100px;
+}
+.date-sep { color: var(--text-muted-d); font-size: 11px; }
+
+.notif-btn {
+  background: var(--surface-2); border: 1px solid var(--border-dark);
+  color: var(--text-muted-d); width: 34px; height: 34px;
+  border-radius: var(--radius); font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; transition: all 0.15s;
+}
+.notif-btn:hover { border-color: var(--gold); color: var(--gold-bright); }
+.notif-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px; background: var(--red);
+  border-radius: 50%; border: 1.5px solid var(--surface-1);
+}
+.export-btn { background: var(--gold); color: var(--navy-dark); font-size: 12px; font-weight: 700; }
+.export-btn:hover { background: var(--gold-bright); }
+
+/* CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* ALERTS STRIP */
+.alerts-strip { display: flex; gap: 10px; margin-bottom: 18px; overflow-x: auto; padding-bottom: 2px; }
+.alert-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-1); border: 1px solid var(--border-dark);
+  border-radius: var(--radius); padding: 8px 14px;
+  font-size: 12px; white-space: nowrap; flex-shrink: 0;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.alert-chip:hover { border-color: var(--gold); }
+.alert-chip.warn  { border-left: 3px solid var(--warning-text); }
+.alert-chip.danger{ border-left: 3px solid var(--red); }
+.alert-chip.info  { border-left: 3px solid var(--info-text); }
+.chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* KPI GRID */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.kpi-card {
+  background: var(--surface-1); border: 1px solid var(--border-dark);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  position: relative; overflow: hidden; transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: var(--border-dark); box-shadow: var(--shadow-sm); }
+.kpi-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.kpi-label  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted-d); margin-bottom: 10px; }
+.kpi-value  { font-family: var(--font-mono); font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+.kpi-delta  { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+.kpi-delta.up   { color: var(--success-text); }
+.kpi-delta.down { color: var(--red-bright); }
+.kpi-bg-icon { position: absolute; bottom: 10px; right: 14px; font-size: 30px; opacity: 0.08; }
+
+/* RECON PANEL */
+.recon-panel {
+  background: var(--navy-dark); border: 1px solid var(--border-dark);
+  border-radius: var(--radius-lg); padding: 18px 22px;
+  margin-bottom: 18px;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
+  position: relative; overflow: hidden;
+}
+.recon-panel::before {
+  content: 'RECONCILIATION SUMMARY — APRIL 2026';
+  position: absolute; top: 10px; left: 22px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.16em;
+  color: var(--text-muted-d); text-transform: uppercase;
+}
+.recon-item { padding: 22px 16px 8px; border-right: 1px solid var(--border-dark); }
+.recon-item:last-child { border-right: none; }
+.recon-item .rl { font-size: 10px; color: var(--text-muted-d); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.recon-item .rv { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+.recon-item .rs { font-size: 11px; color: var(--text-muted-d); margin-top: 3px; }
+
+/* CHARTS ROW */
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 18px; }
+
+.panel { background: var(--surface-1); border: 1px solid var(--border-dark); border-radius: var(--radius-lg); overflow: hidden; }
+.panel-hdr {
+  padding: 14px 18px 12px; border-bottom: 1px solid var(--border-dark);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title { font-size: 14px; font-weight: 700; color: var(--text-on-dark); }
+.panel-sub   { font-size: 11px; color: var(--text-muted-d); margin-top: 2px; }
+.panel-body  { padding: 16px 18px; }
+
+.period-tabs { display: flex; gap: 3px; }
+.period-tab {
+  background: none; border: 1px solid var(--border-dark);
+  color: var(--text-muted-d); font-family: var(--font-body);
+  font-size: 11px; font-weight: 600;
+  padding: 4px 10px; border-radius: 5px; transition: all 0.14s;
+}
+.period-tab.active { background: var(--surface-3); color: var(--text-on-dark); border-color: var(--navy-light); }
+
+.chart-wrap { position: relative; height: 195px; }
+
+.donut-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
+.donut-chart-wrap { position: relative; height: 150px; }
+.legend-list { display: flex; flex-direction: column; gap: 9px; }
+.legend-row  { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.legend-dot  { width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; flex-shrink: 0; }
+.legend-name { display: flex; align-items: center; color: var(--text-muted-d); }
+.legend-pct  { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-on-dark); }
+
+/* BOTTOM ROW */
+.bottom-row { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-bottom: 18px; }
+
+/* OFFICER TABLE */
+.officer-cell { display: flex; align-items: center; gap: 10px; }
+.officer-av   {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.officer-name  { font-size: 13px; font-weight: 600; color: var(--text-on-dark); }
+.officer-badge { font-size: 10px; color: var(--text-muted-d); font-family: var(--font-mono); }
+.location-text { font-size: 11px; color: var(--text-muted-d); }
+
+.action-btn {
+  background: var(--surface-2); border: 1px solid var(--border-dark);
+  color: var(--text-muted-d); font-size: 11px; font-weight: 600;
+  padding: 4px 10px; border-radius: 5px; transition: all 0.14s;
+}
+.action-btn:hover { border-color: var(--gold); color: var(--gold-bright); }
+
+/* LIVE FEED */
+.feed-list { display: flex; flex-direction: column; }
+.feed-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border-mid);
+}
+.feed-row:last-child { border-bottom: none; }
+.feed-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.feed-plate { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-on-dark); }
+.feed-desc  { font-size: 11px; color: var(--text-muted-d); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-amt   { font-family: var(--font-mono); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.feed-time  { font-size: 10px; color: var(--text-muted-d); font-family: var(--font-mono); }
+.live-dot   {
+  width: 8px; height: 8px; background: var(--success-text); border-radius: 50%;
+  box-shadow: 0 0 6px var(--success-text);
+  animation: livePulse 1.5s infinite;
+}
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* OFFENCES BAR CHART */
+.offence-row { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.offence-item { }
+.offence-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.offence-name  { color: var(--text-on-dark); font-weight: 500; }
+.offence-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted-d); }
+
+/* DETAIL MODAL */
+.dmod-kv { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border-mid); font-size: 13px; }
+.dmod-kv:last-child { border-bottom: none; }
+.dmod-kv .k { color: var(--text-muted-d); }
+.dmod-kv .v { font-weight: 600; color: var(--text-on-dark); text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="gov-strip">
+      <div class="flag-mini"><span class="f1"></span><span class="f2"></span><span class="f3"></span></div>
+      MPS · DRTSS
+    </div>
+    <div class="brand-row">
+      <div class="brand-eagle-sm">🦅</div>
+      <div>
+        <div class="brand-name">NEXUS<span>FINE</span></div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-group-label">Operations</div>
+  <div class="nav-item active" onclick="setNav(this,'Dashboard')"><span class="ni">📊</span> Dashboard</div>
+  <div class="nav-item" onclick="setNav(this,'All Fines')"><span class="ni">📋</span> All Fines <span class="nav-badge">14</span></div>
+  <div class="nav-item" onclick="setNav(this,'Payments')"><span class="ni">💳</span> Payments</div>
+  <div class="nav-item" onclick="setNav(this,'Live Map')"><span class="ni">🗺️</span> Live Map</div>
+  <div class="nav-item" onclick="setNav(this,'Reconciliation')"><span class="ni">🔁</span> Reconciliation</div>
+
+  <div class="nav-group-label">Management</div>
+  <div class="nav-item" onclick="setNav(this,'Officers')"><span class="ni">👮</span> Officers</div>
+  <div class="nav-item" onclick="setNav(this,'Departments')"><span class="ni">🏢</span> Departments</div>
+  <div class="nav-item" onclick="setNav(this,'Offence Codes')"><span class="ni">⚖️</span> Offence Codes</div>
+  <div class="nav-item" onclick="setNav(this,'Vehicles')"><span class="ni">🚗</span> Vehicles</div>
+
+  <div class="nav-group-label">Reports</div>
+  <div class="nav-item" onclick="setNav(this,'Analytics')"><span class="ni">📈</span> Analytics</div>
+  <div class="nav-item" onclick="setNav(this,'Audit Log')"><span class="ni">📄</span> Audit Log</div>
+  <div class="nav-item" onclick="setNav(this,'Export Centre')"><span class="ni">⬇</span> Export Centre</div>
+
+  <div class="nav-group-label">System</div>
+  <div class="nav-item" onclick="setNav(this,'Alerts')"><span class="ni">🔔</span> Alerts <span class="nav-badge">3</span></div>
+  <div class="nav-item" onclick="setNav(this,'Settings')"><span class="ni">⚙️</span> Settings</div>
+  <div class="nav-item" onclick="setNav(this,'User Management')"><span class="ni">👥</span> User Management</div>
+
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-av">SK</div>
+      <div>
+        <div class="user-name">Supt. S. Kachali</div>
+        <div class="user-role">Senior Supervisor · Lilongwe</div>
+      </div>
+      <button class="logout-btn" title="Logout" onclick="alert('Logging out...')">↩</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Operations Dashboard</div>
+      <div class="topbar-crumb">NexusFine · Malawi Police Service · Traffic Department</div>
+    </div>
+    <div class="topbar-right">
+      <select class="filter-select" onchange="filterZone(this.value)">
+        <option value="all">All Zones</option>
+        <option value="lilongwe">Lilongwe</option>
+        <option value="blantyre">Blantyre</option>
+        <option value="mzuzu">Mzuzu</option>
+        <option value="zomba">Zomba</option>
+      </select>
+      <div class="date-range">
+        📅 <input type="date" value="2026-04-01"> <span class="date-sep">→</span> <input type="date" value="2026-04-08">
+      </div>
+      <button class="notif-btn" onclick="openNotifPanel()">🔔<div class="notif-dot"></div></button>
+      <button class="btn btn-sm export-btn" onclick="alert('Exporting report to Excel/PDF — available in live system.')">⬇ Export</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ALERTS STRIP -->
+    <div class="alerts-strip">
+      <div class="alert-chip danger" onclick="openAlertModal('overdue')">
+        <span class="chip-dot" style="background:var(--red)"></span>
+        <span>⚠ <strong>14 fines overdue</strong> — collection at risk</span>
+      </div>
+      <div class="alert-chip warn" onclick="openAlertModal('device')">
+        <span class="chip-dot" style="background:var(--warning-text)"></span>
+        <span>📱 <strong>3 officer devices</strong> offline &gt; 2 hours</span>
+      </div>
+      <div class="alert-chip info" onclick="openAlertModal('collection')">
+        <span class="chip-dot" style="background:var(--info-text)"></span>
+        <span>📊 Collection rate below target in <strong>Mzuzu zone</strong></span>
+      </div>
+      <div class="alert-chip info">
+        <span class="chip-dot" style="background:var(--success-text)"></span>
+        <span>✅ System sync: <strong>All databases current</strong> as of 14:30</span>
+      </div>
+    </div>
+
+    <!-- KPI GRID -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--gold)"></div>
+        <div class="kpi-label">Fines Issued Today</div>
+        <div class="kpi-value" id="kpi-issued" style="color:var(--gold-bright)">0</div>
+        <div class="kpi-delta up">▲ 12% vs yesterday</div>
+        <div class="kpi-bg-icon">📋</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--success-text)"></div>
+        <div class="kpi-label">Revenue — Month to Date</div>
+        <div class="kpi-value" id="kpi-revenue" style="color:var(--success-text)">0</div>
+        <div class="kpi-delta up">▲ 8.4% vs last month</div>
+        <div class="kpi-bg-icon">💰</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--navy-light)"></div>
+        <div class="kpi-label">Collection Rate</div>
+        <div class="kpi-value" style="color:var(--text-on-dark)">74%</div>
+        <div class="kpi-delta up">▲ 3pp this week</div>
+        <div class="kpi-bg-icon">✅</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--red)"></div>
+        <div class="kpi-label">Officers On Duty</div>
+        <div class="kpi-value" style="color:var(--text-on-dark)">38 <span style="font-size:14px;color:var(--text-muted-d)">/50</span></div>
+        <div class="kpi-delta down">▼ 2 on leave today</div>
+        <div class="kpi-bg-icon">👮</div>
+      </div>
+    </div>
+
+    <!-- RECONCILIATION PANEL -->
+    <div class="recon-panel">
+      <div class="recon-item">
+        <div class="rl">Total Issued (Apr)</div>
+        <div class="rv" style="color:var(--text-on-dark)">MK 284.5M</div>
+        <div class="rs">↑ 1,624 fines</div>
+      </div>
+      <div class="recon-item">
+        <div class="rl">Collected</div>
+        <div class="rv" style="color:var(--success-text)">MK 210.6M</div>
+        <div class="rs">↑ 74% collection rate</div>
+      </div>
+      <div class="recon-item">
+        <div class="rl">Outstanding</div>
+        <div class="rv" style="color:var(--warning-text)">MK 73.9M</div>
+        <div class="rs">↓ 426 unpaid fines</div>
+      </div>
+      <div class="recon-item">
+        <div class="rl">Overdue (&gt;30 days)</div>
+        <div class="rv" style="color:var(--red-bright)">MK 18.2M</div>
+        <div class="rs">↑ 14 at-risk fines</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-hdr">
+          <div>
+            <div class="panel-title">Fines Issued vs Collected</div>
+            <div class="panel-sub">Daily trend — April 2026</div>
+          </div>
+          <div class="period-tabs">
+            <button class="period-tab active" onclick="setPeriod('7d',this)">7D</button>
+            <button class="period-tab" onclick="setPeriod('14d',this)">14D</button>
+            <button class="period-tab" onclick="setPeriod('30d',this)">30D</button>
+          </div>
+        </div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr">
+          <div>
+            <div class="panel-title">Payment Breakdown</div>
+            <div class="panel-sub">By channel — this month</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="donut-wrap">
+            <div class="donut-chart-wrap"><canvas id="donutChart"></canvas></div>
+            <div class="legend-list">
+              <div class="legend-row"><div class="legend-name"><div class="legend-dot" style="background:#c8960c"></div>Airtel Money</div><div class="legend-pct">38%</div></div>
+              <div class="legend-row"><div class="legend-name"><div class="legend-dot" style="background:#1a7a4a"></div>TNM Mpamba</div><div class="legend-pct">29%</div></div>
+              <div class="legend-row"><div class="legend-name"><div class="legend-dot" style="background:#2e4478"></div>Bank</div><div class="legend-pct">19%</div></div>
+              <div class="legend-row"><div class="legend-name"><div class="legend-dot" style="background:#c0392b"></div>Card</div><div class="legend-pct">9%</div></div>
+              <div class="legend-row"><div class="legend-name"><div class="legend-dot" style="background:#3a4a6b"></div>Other</div><div class="legend-pct">5%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row">
+      <!-- OFFICER TABLE -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <div>
+            <div class="panel-title">Officer Performance — Today</div>
+            <div class="panel-sub">Shift A · 06:00–14:00 · Ranked by fines issued</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted-d)">APR 08 2026</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Officer</th>
+                <th>Status</th>
+                <th>Zone</th>
+                <th>Issued</th>
+                <th>Collected</th>
+                <th>Rate</th>
+                <th>Last Location</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="officer-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- LIVE FEED -->
+        <div class="panel" style="flex:1">
+          <div class="panel-hdr">
+            <div>
+              <div class="panel-title">Live Fine Feed</div>
+              <div class="panel-sub">Most recent issuances</div>
+            </div>
+            <div class="live-dot"></div>
+          </div>
+          <div class="panel-body" style="padding:0 18px">
+            <div class="feed-list" id="fine-feed"></div>
+          </div>
+        </div>
+
+        <!-- TOP OFFENCES -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div>
+              <div class="panel-title">Top Offences</div>
+              <div class="panel-sub">April 2026</div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="offence-row" id="offence-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- OFFICER DETAIL MODAL -->
+<div class="modal-overlay" id="officer-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('officer-modal')">✕</button>
+    <div class="modal-inner">
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--gold-bright);margin-bottom:4px" id="dmod-ref"></div>
+      <div style="font-size:18px;font-weight:700;color:var(--text-on-dark);margin-bottom:18px" id="dmod-name"></div>
+      <div id="dmod-rows"></div>
+      <div style="display:flex;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeModal('officer-modal')">Close</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--warning-bg);color:var(--warning-text)" onclick="alert('Officer alert sent.')">⚠ Send Alert</button>
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="alert('Full officer profile — available in live system.')">Full Profile</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT DETAIL MODAL -->
+<div class="modal-overlay" id="alert-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('alert-modal')">✕</button>
+    <div class="modal-inner">
+      <div style="font-size:18px;font-weight:700;color:var(--text-on-dark);margin-bottom:6px" id="alert-title"></div>
+      <div style="font-size:13px;color:var(--text-muted-d);margin-bottom:20px" id="alert-body"></div>
+      <div id="alert-table"></div>
+      <div style="display:flex;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeModal('alert-modal')">Dismiss</button>
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="alert('Escalation logged.');closeModal('alert-modal')">Escalate to IG</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF PANEL -->
+<div class="modal-overlay" id="notif-modal">
+  <div class="modal-box" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('notif-modal')">✕</button>
+    <div class="modal-inner">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-on-dark)">🔔 System Notifications</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="alert alert-danger">⚠ <strong>14 fines</strong> are more than 30 days overdue — MK 18.2M at risk.</div>
+        <div class="alert alert-warning">📱 Officer devices #TAB-14, #TAB-21, #TAB-33 offline for more than 2 hours. Last known location: Area 18, Lilongwe.</div>
+        <div class="alert alert-info">📊 Mzuzu zone collection rate dropped to 58% — below 65% target. Supervisor review recommended.</div>
+        <div class="alert alert-success">✅ Daily reconciliation completed at 14:30. All payment records matched.</div>
+      </div>
+      <button class="btn btn-ghost btn-block mt-16" onclick="closeModal('notif-modal')">Mark All as Read</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CHART DEFAULTS ──
+Chart.defaults.color = '#7b8db8';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+// ── NAV ──
+function setNav(el, title) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = title;
+}
+
+// ── FILTER (demo) ──
+function filterZone(zone) {
+  // In the live system this would re-query the API
+  const label = zone === 'all' ? 'All Zones' : zone.charAt(0).toUpperCase()+zone.slice(1);
+  document.querySelector('.topbar-crumb').textContent =
+    `NexusFine · Malawi Police Service · Traffic Department · ${label}`;
+}
+
+// ── LIVE DATE ──
+function refreshDate() {
+  // topbar date handled by date inputs
+}
+
+// ── KPI COUNTER ──
+function countUp(id, target, prefix='', suffix='') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let v = 0; const step = Math.ceil(target / 45);
+  const t = setInterval(() => {
+    v = Math.min(v + step, target);
+    el.textContent = prefix + v.toLocaleString() + suffix;
+    if (v >= target) clearInterval(t);
+  }, 25);
+}
+countUp('kpi-issued', 147);
+countUp('kpi-revenue', 12480000, 'MK ');
+
+// ── LINE CHART ──
+const periods = {
+  '7d': {
+    labels:['02 Apr','03 Apr','04 Apr','05 Apr','06 Apr','07 Apr','08 Apr'],
+    issued:   [112,98,134,121,145,139,147],
+    collected:[78,65,97,88,108,101,109]
+  },
+  '14d': {
+    labels:['25M','26M','27M','28M','29M','30M','31M','01A','02A','03A','04A','05A','06A','07A'],
+    issued:   [90,105,88,97,111,120,95,104,112,98,134,121,145,139],
+    collected:[61,72,60,68,79,88,66,74,78,65,97,88,108,101]
+  },
+  '30d': {
+    labels: Array.from({length:30},(_,i)=>`${i+9}M`),
+    issued:   [80,85,90,75,88,102,98,105,88,97,111,120,95,104,112,98,134,121,145,139,130,118,128,142,135,140,147,138,150,147],
+    collected:[55,58,61,50,60,70,66,74,60,68,79,88,66,74,78,65,97,88,108,101,95,84,91,103,98,102,109,100,112,109]
+  }
+};
+let lineChart;
+function buildLine(period) {
+  const d = periods[period];
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineChart'), {
+    type:'line',
+    data:{
+      labels:d.labels,
+      datasets:[
+        { label:'Issued',    data:d.issued,    borderColor:'#c8960c', backgroundColor:'rgba(200,150,12,0.08)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#c8960c', tension:0.4, fill:true },
+        { label:'Collected', data:d.collected, borderColor:'#1a7a4a', backgroundColor:'rgba(26,122,74,0.07)',  borderWidth:2, pointRadius:3, pointBackgroundColor:'#1a7a4a', tension:0.4, fill:true }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', labels:{ boxWidth:10, padding:14, font:{size:12} } }, tooltip:{ mode:'index', intersect:false } },
+      scales:{
+        x:{ grid:{ color:'#1e2e52' }, ticks:{ maxTicksLimit:7, font:{size:11} } },
+        y:{ grid:{ color:'#1e2e52' }, ticks:{ font:{size:11} }, beginAtZero:true }
+      }
+    }
+  });
+}
+function setPeriod(p, btn) {
+  document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); buildLine(p);
+}
+buildLine('7d');
+
+// ── DONUT ──
+new Chart(document.getElementById('donutChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Airtel Money','TNM Mpamba','Bank','Card','Other'],
+    datasets:[{ data:[38,29,19,9,5], backgroundColor:['#c8960c','#1a7a4a','#2e4478','#c0392b','#3a4a6b'], borderWidth:0, hoverOffset:6 }]
+  },
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'70%',
+    plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.raw}%` } } }
+  }
+});
+
+// ── OFFICER DATA ──
+const officers = [
+  { name:'Cst. L. Phiri',     badge:'T-0024', zone:'Lilongwe', issued:22, collected:17, status:'active',  color:'#c8960c', lastLoc:'M1 · Area 18' },
+  { name:'Sgt. R. Kachingwe', badge:'T-0011', zone:'Blantyre', issued:19, collected:15, status:'active',  color:'#1a7a4a', lastLoc:'Chipembere Hwy' },
+  { name:'Cst. B. Tembo',     badge:'T-0037', zone:'Lilongwe', issued:17, collected:14, status:'active',  color:'#2e4478', lastLoc:'Kamuzu Procession' },
+  { name:'Cst. F. Mwale',     badge:'T-0019', zone:'Mzuzu',    issued:14, collected:10, status:'break',   color:'#c8960c', lastLoc:'M1 · Rumphi Rd' },
+  { name:'Sgt. G. Mvula',     badge:'T-0008', zone:'Zomba',    issued:13, collected:11, status:'active',  color:'#1a7a4a', lastLoc:'Zomba Ring Rd' },
+  { name:'Cst. A. Gondwe',    badge:'T-0045', zone:'Blantyre', issued:11, collected:7,  status:'active',  color:'#c0392b', lastLoc:'Ginnery Corner' },
+  { name:'Cst. D. Sakala',    badge:'T-0031', zone:'Lilongwe', issued:9,  collected:9,  status:'offline', color:'#3a4a6b', lastLoc:'Last: Area 49' },
+];
+const statusLabel = { active:'Active', offline:'Off Duty', break:'On Break' };
+const statusClass = { active:'pill-active', offline:'pill-offline', break:'pill-break' };
+
+function buildOfficerTable() {
+  const tbody = document.getElementById('officer-tbody');
+  tbody.innerHTML = '';
+  officers.forEach((o,i) => {
+    const rate = Math.round((o.collected/o.issued)*100);
+    const initials = o.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const rateColor = rate>=75 ? 'var(--success-text)' : rate>=50 ? 'var(--warning-text)' : 'var(--red-bright)';
+    tbody.innerHTML += `<tr onclick="openOfficerDetail(${i})" style="cursor:pointer">
+      <td class="mono" style="color:var(--text-muted-d);font-size:11px">${String(i+1).padStart(2,'0')}</td>
+      <td><div class="officer-cell">
+        <div class="officer-av" style="background:${o.color}">${initials}</div>
+        <div><div class="officer-name">${o.name}</div><div class="officer-badge">#${o.badge}</div></div>
+      </div></td>
+      <td><span class="pill ${statusClass[o.status]}">${statusLabel[o.status]}</span></td>
+      <td style="font-size:12px;color:var(--text-muted-d)">${o.zone}</td>
+      <td class="mono fw-700" style="color:var(--gold-bright)">${o.issued}</td>
+      <td class="mono fw-700" style="color:var(--success-text)">${o.collected}</td>
+      <td><div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" style="width:${rate}%;background:${rateColor}"></div></div>
+        <div class="progress-label">${rate}%</div>
+      </div></td>
+      <td><div class="location-text">📍 ${o.lastLoc}</div></td>
+      <td><button class="action-btn" onclick="event.stopPropagation();openOfficerDetail(${i})">View</button></td>
+    </tr>`;
+  });
+}
+buildOfficerTable();
+
+// ── LIVE FEED ──
+const liveFines = [
+  { plate:'MWK 1234 A', desc:'Speeding — M1, Area 18',          time:'14:22', amt:'MWK 50,000',  paid:false },
+  { plate:'BT 5521 B',  desc:'Red light — Chipembere Hwy',       time:'14:09', amt:'MWK 75,000',  paid:true  },
+  { plate:'LL 0832 C',  desc:'No seatbelt — Kamuzu Procession',  time:'13:55', amt:'MWK 25,000',  paid:false },
+  { plate:'MZ 4410 D',  desc:'Expired licence — Chileka Rd',     time:'13:41', amt:'MWK 40,000',  paid:true  },
+  { plate:'ZB 1129 E',  desc:'Unroadworthy — Masauko Chipembere', time:'13:28', amt:'MWK 60,000', paid:false },
+  { plate:'MWK 7703 F', desc:'Wrong lane — Kamuzu Roundabout',   time:'13:14', amt:'MWK 30,000',  paid:true  },
+];
+function buildFeed() {
+  document.getElementById('fine-feed').innerHTML = liveFines.map(f => `
+    <div class="feed-row">
+      <div class="feed-dot" style="background:${f.paid?'var(--success-text)':'var(--red)'}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="feed-plate">${f.plate}</div>
+        <div class="feed-desc">${f.desc}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="feed-amt" style="color:${f.paid?'var(--success-text)':'var(--red-bright)'}">${f.amt}</div>
+        <div class="feed-time">${f.time}</div>
+      </div>
+    </div>`).join('');
+}
+buildFeed();
+
+// Live ticker
+const extraFeed = [
+  { plate:'LL 3344 H',  desc:'No helmet — Area 49 Road',      time:'', amt:'MWK 20,000', paid:false },
+  { plate:'MWK 8891 J', desc:'Overloading — Blantyre Road',   time:'', amt:'MWK 80,000', paid:false },
+];
+let extraIdx = 0;
+setInterval(() => {
+  if (extraIdx < extraFeed.length) {
+    const now = new Date();
+    extraFeed[extraIdx].time = now.toLocaleTimeString('en-MW',{hour:'2-digit',minute:'2-digit'});
+    liveFines.unshift(extraFeed[extraIdx++]);
+    if (liveFines.length > 8) liveFines.pop();
+    buildFeed();
+    const el = document.getElementById('kpi-issued');
+    el.textContent = (parseInt(el.textContent.replace(/,/g,''))+1).toLocaleString();
+  }
+}, 25000);
+
+// ── TOP OFFENCES ──
+const offences = [
+  { name:'Speeding', count:412, max:412 },
+  { name:'Red Light Violation', count:289, max:412 },
+  { name:'No Seatbelt', count:201, max:412 },
+  { name:'Expired Road Licence', count:178, max:412 },
+  { name:'Unroadworthy Vehicle', count:144, max:412 },
+  { name:'Wrong Lane', count:98, max:412 },
+];
+const offenceColors = ['#c8960c','#c0392b','#2e4478','#1a7a4a','#c8960c','#c0392b'];
+document.getElementById('offence-list').innerHTML = offences.map((o,i) => `
+  <div class="offence-item">
+    <div class="offence-label">
+      <span class="offence-name">${o.name}</span>
+      <span class="offence-count">${o.count}</span>
+    </div>
+    <div class="progress-track" style="height:6px">
+      <div class="progress-fill" style="width:${Math.round(o.count/o.max*100)}%;background:${offenceColors[i]}"></div>
+    </div>
+  </div>`).join('');
+
+// ── OFFICER DETAIL MODAL ──
+function openOfficerDetail(i) {
+  const o = officers[i];
+  const rate = Math.round((o.collected/o.issued)*100);
+  document.getElementById('dmod-ref').textContent = `OFFICER · #${o.badge} · ${o.zone} Zone`;
+  document.getElementById('dmod-name').textContent = o.name;
+  document.getElementById('dmod-rows').innerHTML = [
+    ['Status', statusLabel[o.status]],
+    ['Zone / Assignment', o.zone],
+    ['Last Known Location', o.lastLoc],
+    ['Fines Issued Today', o.issued],
+    ['Fines Collected', o.collected],
+    ['Collection Rate', rate + '%'],
+    ['Shift', 'Shift A · 06:00 – 14:00'],
+    ['Device', `Samsung Galaxy Tab A9 · #TAB-${12+i}`],
+    ['Last Device Sync', 'Today · 14:18'],
+    ['NFC Scans Today', o.issued + Math.floor(Math.random()*5)],
+  ].map(([k,v]) => `<div class="dmod-kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  openModal('officer-modal');
+}
+
+// ── ALERT MODAL ──
+const alertContent = {
+  overdue:{
+    title:'⚠ Overdue Fines — Action Required',
+    body:'The following 14 fines are more than 30 days overdue totalling MK 18.2M. Escalation letters will be generated for each.',
+    table:`<table class="data-table"><thead><tr><th>Ref</th><th>Plate</th><th>Amount</th><th>Days Overdue</th></tr></thead><tbody>
+      <tr><td class="mono text-gold">NXF-2026-00102</td><td>MWK 4421 A</td><td class="mono text-red">MK 50,000</td><td style="color:var(--red-bright)">38</td></tr>
+      <tr><td class="mono text-gold">NXF-2026-00087</td><td>BT 1193 B</td><td class="mono text-red">MK 75,000</td><td style="color:var(--red-bright)">41</td></tr>
+      <tr><td class="mono text-gold">NXF-2026-00071</td><td>LL 2290 C</td><td class="mono text-red">MK 100,000</td><td style="color:var(--red-bright)">45</td></tr>
+      <tr><td colspan="4" style="color:var(--text-muted-d);font-size:12px;padding:10px 14px">+ 11 more fines</td></tr>
+    </tbody></table>`
+  },
+  device:{
+    title:'📱 Offline Officer Devices',
+    body:'3 officer tablets have been offline for more than 2 hours. Supervisor contact recommended.',
+    table:`<table class="data-table"><thead><tr><th>Device</th><th>Officer</th><th>Last Sync</th><th>Last Location</th></tr></thead><tbody>
+      <tr><td class="mono">#TAB-14</td><td>Cst. P. Banda</td><td style="color:var(--warning-text)">12:14</td><td>Area 18</td></tr>
+      <tr><td class="mono">#TAB-21</td><td>Cst. T. Chirwa</td><td style="color:var(--warning-text)">11:58</td><td>Kamuzu Rd</td></tr>
+      <tr><td class="mono">#TAB-33</td><td>Cst. N. Msiska</td><td style="color:var(--red-bright)">10:45</td><td>Area 49</td></tr>
+    </tbody></table>`
+  },
+  collection:{
+    title:'📊 Low Collection Rate — Mzuzu Zone',
+    body:'Mzuzu zone collection rate has dropped to 58%, below the 65% minimum target set for April.',
+    table:`<table class="data-table"><thead><tr><th>Zone</th><th>Issued</th><th>Collected</th><th>Rate</th><th>Target</th></tr></thead><tbody>
+      <tr><td>Lilongwe</td><td>642</td><td>498</td><td style="color:var(--success-text)">78%</td><td>65%</td></tr>
+      <tr><td>Blantyre</td><td>581</td><td>442</td><td style="color:var(--success-text)">76%</td><td>65%</td></tr>
+      <tr><td>Zomba</td><td>218</td><td>152</td><td style="color:var(--warning-text)">70%</td><td>65%</td></tr>
+      <tr><td>Mzuzu</td><td>183</td><td>106</td><td style="color:var(--red-bright)">58%</td><td>65%</td></tr>
+    </tbody></table>`
+  }
+};
+function openAlertModal(type) {
+  const c = alertContent[type];
+  document.getElementById('alert-title').textContent = c.title;
+  document.getElementById('alert-body').textContent  = c.body;
+  document.getElementById('alert-table').innerHTML   = c.table;
+  openModal('alert-modal');
+}
+
+// ── MODALS ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openNotifPanel() { openModal('notif-modal'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

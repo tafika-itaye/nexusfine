@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusFine — Malawi Traffic Fines Portal</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+/* ── CITIZEN PORTAL SPECIFIC ── */
+body {
+  background: var(--off-white);
+  color: var(--text-on-light);
+}
+
+/* NAV */
+.main-nav {
+  background: var(--navy);
+  box-shadow: var(--shadow);
+  position: sticky; top: 0; z-index: 200;
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 5%;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.brand-eagle {
+  width: 42px; height: 42px;
+  background: var(--navy-mid);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.brand-text .name {
+  font-size: 17px; font-weight: 800;
+  color: var(--text-on-dark); letter-spacing: 0.04em;
+}
+.brand-text .name span { color: var(--gold-bright); }
+.brand-text .sub { font-size: 10px; color: var(--text-muted-d); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+  color: var(--text-muted-d); font-size: 13px; font-weight: 500;
+  padding: 8px 14px; border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.nav-link:hover { color: var(--text-on-dark); background: var(--navy-mid); }
+.nav-link.active { color: var(--gold-bright); }
+
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+.lang-toggle {
+  background: var(--navy-mid); border: 1px solid var(--border-dark);
+  color: var(--text-muted-d); font-size: 12px; font-weight: 600;
+  padding: 6px 12px; border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.lang-toggle:hover { color: var(--gold-bright); border-color: var(--gold); }
+.lang-toggle.active-lang { color: var(--gold-bright); border-color: var(--gold); }
+
+/* HERO */
+.hero {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+  padding: 64px 5% 56px;
+  border-bottom: 3px solid var(--gold);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+  position: relative; z-index: 1;
+}
+.hero-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold-bright);
+  margin-bottom: 18px;
+}
+.hero-eyebrow::before { content: ''; display: block; width: 20px; height: 2px; background: var(--gold); }
+.hero h1 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 800; line-height: 1.1;
+  color: var(--text-on-dark);
+  letter-spacing: -0.02em; margin-bottom: 18px;
+}
+.hero h1 em { font-style: normal; color: var(--gold-bright); }
+.hero-desc { font-size: 15px; color: var(--text-muted-d); font-weight: 400; max-width: 460px; margin-bottom: 36px; line-height: 1.7; }
+.hero-stats { display: flex; gap: 28px; }
+.stat-block { border-left: 3px solid var(--gold); padding-left: 14px; }
+.stat-block .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text-on-dark); }
+.stat-block .lbl { font-size: 11px; color: var(--text-muted-d); text-transform: uppercase; letter-spacing: 0.07em; }
+
+/* LOOKUP CARD */
+.lookup-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+.lookup-card-top {
+  background: var(--navy); padding: 20px 24px 16px;
+  border-bottom: 3px solid var(--gold);
+}
+.lookup-card-top h2 { font-size: 16px; font-weight: 700; color: var(--text-on-dark); }
+.lookup-card-top p  { font-size: 12px; color: var(--text-muted-d); margin-top: 3px; }
+.lookup-card-body { padding: 24px; }
+
+.tab-row {
+  display: flex; gap: 3px;
+  background: var(--light-grey);
+  padding: 4px; border-radius: var(--radius); margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1; background: none; border: none;
+  color: var(--text-muted-l); font-size: 12px; font-weight: 600;
+  padding: 8px 4px; border-radius: 6px; transition: all 0.15s;
+}
+.tab-btn.active { background: var(--navy); color: var(--gold-bright); box-shadow: var(--shadow-sm); }
+.tab-btn:hover:not(.active) { color: var(--navy); }
+
+/* Citizen inputs use light style */
+.lookup-card .form-input { background: var(--white); border: 1.5px solid var(--border-light); color: var(--text-on-light); }
+.lookup-card .form-input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(26,39,68,0.1); }
+.lookup-card .form-input::placeholder { color: var(--mid-grey); }
+.lookup-card .form-label { color: var(--text-muted-l); }
+
+.btn-search {
+  width: 100%; background: var(--navy); color: white;
+  border: none; border-radius: var(--radius); padding: 13px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+  margin-top: 4px; transition: background 0.18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-search:hover { background: var(--navy-light); }
+.btn-sample {
+  width: 100%; background: transparent; color: var(--text-muted-l);
+  border: 1.5px solid var(--border-light); border-radius: var(--radius);
+  padding: 11px; font-size: 13px; font-weight: 500; margin-top: 8px;
+  transition: all 0.15s;
+}
+.btn-sample:hover { border-color: var(--navy); color: var(--navy); }
+
+/* RESULT */
+.result-panel { margin-top: 20px; border-top: 1px solid var(--border-light); padding-top: 20px; display: none; }
+
+.fine-result {
+  background: var(--off-white);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.fine-result-header {
+  background: var(--navy-dark); padding: 16px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fine-ref-mono { font-family: var(--font-mono); font-size: 12px; color: var(--gold-bright); letter-spacing: 0.1em; }
+.fine-plate-text { font-size: 11px; color: var(--text-muted-d); margin-top: 2px; }
+.fine-result-body { padding: 16px 18px; }
+
+.detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 14px;
+}
+.detail-item .k { font-size: 10px; color: var(--text-muted-l); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+.detail-item .v { font-size: 13px; font-weight: 600; color: var(--text-on-light); }
+.detail-item.full { grid-column: 1 / -1; }
+
+/* FINE TIMELINE */
+.fine-timeline {
+  display: flex; align-items: center;
+  margin: 14px 0; padding: 14px 16px;
+  background: var(--white); border: 1px solid var(--border-light);
+  border-radius: var(--radius); gap: 0;
+  overflow-x: auto;
+}
+.timeline-step {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 5px; position: relative; min-width: 70px;
+}
+.timeline-step::after {
+  content: '';
+  position: absolute; top: 12px; left: 50%; right: -50%;
+  height: 2px; background: var(--border-light); z-index: 0;
+}
+.timeline-step:last-child::after { display: none; }
+.timeline-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: var(--white); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; z-index: 1; position: relative;
+  transition: all 0.2s;
+}
+.timeline-step.done .timeline-dot  { background: var(--success-text); border-color: var(--success-text); color: white; }
+.timeline-step.active .timeline-dot{ background: var(--gold); border-color: var(--gold); color: var(--navy-dark); }
+.timeline-step.done::after  { background: var(--success-text); }
+.timeline-label { font-size: 10px; color: var(--text-muted-l); text-align: center; font-weight: 600; letter-spacing: 0.04em; }
+.timeline-step.done   .timeline-label { color: var(--success-text); }
+.timeline-step.active .timeline-label { color: var(--gold); }
+
+.fine-amount-box {
+  background: var(--navy-dark); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fine-amount-box .lbl { font-size: 11px; color: var(--text-muted-d); }
+.fine-amount-box .amount { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+.fine-amount-box .amount.unpaid { color: var(--red-bright); }
+.fine-amount-box .amount.paid   { color: var(--success-text); }
+.fine-amount-box .due-note { font-size: 11px; color: var(--warning-text); text-align: right; }
+
+.pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.pay-option {
+  background: var(--white); border: 1.5px solid var(--border-light);
+  border-radius: var(--radius); padding: 9px 10px;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; color: var(--text-on-light);
+  transition: all 0.15s;
+}
+.pay-option:hover { border-color: var(--navy); background: var(--off-white); color: var(--navy); box-shadow: var(--shadow-sm); }
+.pay-option .ico { font-size: 16px; }
+
+.appeal-row { margin-top: 10px; }
+.btn-appeal {
+  width: 100%; background: transparent; border: 1.5px dashed var(--border-light);
+  border-radius: var(--radius); color: var(--text-muted-l); font-size: 12px; font-weight: 500;
+  padding: 9px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-appeal:hover { border-color: var(--red); color: var(--red); }
+
+/* SECTIONS */
+.section { max-width: 1200px; margin: 0 auto; padding: 64px 5%; }
+.section-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--navy); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-eyebrow::before { content: ''; display: block; width: 16px; height: 2px; background: var(--gold); }
+.section h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem); font-weight: 800;
+  color: var(--text-on-light); letter-spacing: -0.02em; margin-bottom: 40px;
+}
+
+/* HOW IT WORKS */
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.steps-grid::before {
+  content: ''; position: absolute;
+  top: 32px; left: 10%; right: 10%; height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--navy));
+  z-index: 0;
+}
+.step-card {
+  background: var(--white); border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); padding: 28px 22px; margin: 0 8px;
+  position: relative; z-index: 1;
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.step-card:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+.step-num-badge {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--navy); color: var(--gold-bright);
+  font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px; box-shadow: 0 0 0 4px var(--white), 0 0 0 6px var(--gold);
+}
+.step-card h3 { font-size: 14px; font-weight: 700; color: var(--text-on-light); margin-bottom: 8px; }
+.step-card p  { font-size: 12px; color: var(--text-muted-l); line-height: 1.6; }
+
+/* CHANNELS */
+.channels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.channel-card {
+  background: var(--white); border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg); padding: 24px 20px;
+  transition: all 0.18s; box-shadow: var(--shadow-sm);
+}
+.channel-card:hover { border-color: var(--navy); box-shadow: var(--shadow); transform: translateY(-2px); }
+.channel-icon-wrap {
+  width: 48px; height: 48px; border-radius: var(--radius);
+  background: var(--navy); display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 14px;
+}
+.channel-card h3 { font-size: 14px; font-weight: 700; color: var(--text-on-light); margin-bottom: 5px; }
+.channel-card p  { font-size: 12px; color: var(--text-muted-l); line-height: 1.5; }
+.channel-tag {
+  display: inline-block; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  padding: 3px 8px; border-radius: 3px; letter-spacing: 0.08em;
+  background: var(--light-grey); color: var(--navy); border: 1px solid var(--border-light);
+}
+
+/* FAQ */
+.faq-list { display: flex; flex-direction: column; gap: 2px; }
+.faq-item {
+  background: var(--white); border: 1px solid var(--border-light);
+  border-radius: var(--radius); overflow: hidden;
+}
+.faq-q {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 18px; background: none; border: none; text-align: left;
+  font-size: 14px; font-weight: 600; color: var(--text-on-light);
+  cursor: pointer; transition: background 0.15s;
+}
+.faq-q:hover { background: var(--off-white); }
+.faq-q .chevron { color: var(--navy); font-size: 12px; transition: transform 0.2s; }
+.faq-q.open .chevron { transform: rotate(180deg); }
+.faq-a { display: none; padding: 0 18px 16px; font-size: 13px; color: var(--text-muted-l); line-height: 1.7; border-top: 1px solid var(--border-light); padding-top: 14px; }
+.faq-a.open { display: block; }
+
+/* ALERT BANNER */
+.notice-bar {
+  background: var(--navy-dark); border-bottom: 1px solid var(--border-dark);
+  padding: 10px 5%; display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--text-muted-d);
+}
+.notice-bar .notice-icon { color: var(--gold-bright); font-size: 14px; }
+.notice-bar strong { color: var(--gold-bright); }
+
+/* FOOTER */
+footer {
+  background: var(--navy-dark); border-top: 3px solid var(--gold);
+  padding: 40px 5% 28px;
+}
+.footer-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px; margin-bottom: 28px;
+}
+.footer-brand .name { font-size: 16px; font-weight: 800; color: var(--text-on-dark); margin-bottom: 8px; }
+.footer-brand .name span { color: var(--gold-bright); }
+.footer-brand p { font-size: 12px; color: var(--text-muted-d); line-height: 1.7; max-width: 280px; }
+.footer-col h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted-d); margin-bottom: 14px; }
+.footer-col a { display: block; color: var(--text-muted-d); font-size: 13px; margin-bottom: 8px; transition: color 0.15s; }
+.footer-col a:hover { color: var(--gold-bright); }
+.footer-bottom {
+  max-width: 1200px; margin: 0 auto;
+  padding-top: 20px; border-top: 1px solid var(--border-dark);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--text-muted-d);
+}
+.footer-bottom a { color: var(--text-muted-d); transition: color 0.15s; }
+.footer-bottom a:hover { color: var(--gold-bright); }
+
+/* PAYMENT MODAL */
+.pay-modal-title { font-size: 18px; font-weight: 700; color: var(--text-on-dark); margin-bottom: 4px; }
+.pay-modal-sub   { font-size: 13px; color: var(--text-muted-d); margin-bottom: 22px; }
+.pay-amount-row  {
+  background: var(--surface-0); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pay-amount-row .lbl { font-size: 11px; color: var(--text-muted-d); }
+.pay-amount-row .val { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--red-bright); }
+.phone-row { display: flex; gap: 8px; }
+.country-code {
+  background: var(--surface-0); border: 1px solid var(--border-dark);
+  border-radius: var(--radius); color: var(--text-on-dark);
+  font-family: var(--font-mono); font-size: 14px;
+  padding: 11px 12px; width: 80px; outline: none;
+}
+.success-state { text-align: center; padding: 20px 0; }
+.success-icon-big { font-size: 52px; margin-bottom: 14px; }
+.success-state h3 { font-size: 20px; font-weight: 700; color: var(--text-on-dark); margin-bottom: 8px; }
+.success-state p  { font-size: 13px; color: var(--text-muted-d); margin-bottom: 22px; }
+.receipt-ref { font-family: var(--font-mono); color: var(--gold-bright); font-size: 13px; }
+
+/* PRINT RECEIPT */
+@media print {
+  .gov-topbar, .main-nav, .hero, .notice-bar, .section, footer, .no-print { display: none !important; }
+  .result-panel { display: block !important; }
+  .fine-result { border: 2px solid #000; }
+  body { background: white; }
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .steps-grid::before { display: none; }
+  .channels-grid { grid-template-columns: 1fr 1fr; }
+  .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+}
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .channels-grid { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .pay-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-wrap: wrap; gap: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- GOVERNMENT TOP BAR -->
+<div class="gov-topbar">
+  <div class="gov-left">
+    <div class="gov-flag">
+      <span class="f1"></span><span class="f2"></span><span class="f3"></span>
+    </div>
+    <span class="gov-name">REPUBLIC OF MALAWI</span>
+    <span class="gov-sep">·</span>
+    <span>Malawi Police Service — Road Safety &amp; Traffic Department</span>
+  </div>
+  <div class="gov-right">
+    <a href="#">Official Portal</a>
+    <a href="#">police.gov.mw</a>
+    <a href="#">Emergency: 997</a>
+  </div>
+</div>
+
+<!-- NOTICE BAR -->
+<div class="notice-bar no-print">
+  <span class="notice-icon">ℹ</span>
+  <span><strong>System Notice:</strong> NexusFine is the only official portal for paying traffic fines. Beware of fraudulent sites. Always verify the URL.</span>
+</div>
+
+<!-- MAIN NAV -->
+<nav class="main-nav no-print">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="brand-eagle">🦅</div>
+      <div class="brand-text">
+        <div class="name">NEXUS<span>FINE</span></div>
+        <div class="sub">MPS Digital Enforcement</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="#lookup"   class="nav-link active">Fine Lookup</a>
+      <a href="#how"      class="nav-link">How It Works</a>
+      <a href="#channels" class="nav-link">Pay Options</a>
+      <a href="#faq"      class="nav-link">Help / FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <button class="lang-toggle active-lang" onclick="setLang('en', this)">EN</button>
+      <button class="lang-toggle" onclick="setLang('ny', this)">NY</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero no-print">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow">Official MPS Digital Service</div>
+      <h1>Traffic Fines.<br><em>Paid Online.</em><br>No Queues.</h1>
+      <p class="hero-desc">Look up any traffic fine by plate number, reference, or driver ID. Pay instantly via mobile money, bank, or card — available 24 hours a day.</p>
+      <div class="hero-stats">
+        <div class="stat-block"><div class="num">50+</div><div class="lbl">Officers Online</div></div>
+        <div class="stat-block"><div class="num">24/7</div><div class="lbl">Payment Access</div></div>
+        <div class="stat-block"><div class="num">6</div><div class="lbl">Pay Channels</div></div>
+        <div class="stat-block"><div class="num">5 Min</div><div class="lbl">Avg. Pay Time</div></div>
+      </div>
+    </div>
+
+    <!-- LOOKUP CARD -->
+    <div class="lookup-card" id="lookup">
+      <div class="lookup-card-top">
+        <h2>🔍 Find Your Fine</h2>
+        <p>Enter your vehicle plate, fine reference, or driver ID</p>
+      </div>
+      <div class="lookup-card-body">
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="switchTab('plate',this)">By Plate</button>
+          <button class="tab-btn" onclick="switchTab('ref',this)">By Reference</button>
+          <button class="tab-btn" onclick="switchTab('id',this)">By Driver ID</button>
+        </div>
+        <div id="tab-plate">
+          <div class="form-group">
+            <label class="form-label form-label-light">Vehicle Registration Plate</label>
+            <input type="text" class="form-input" id="plate-input" placeholder="e.g. MWK 1234 A" maxlength="12">
+          </div>
+        </div>
+        <div id="tab-ref" style="display:none">
+          <div class="form-group">
+            <label class="form-label form-label-light">Fine Reference Number</label>
+            <input type="text" class="form-input" id="ref-input" placeholder="e.g. NXF-2026-00481" maxlength="18">
+          </div>
+        </div>
+        <div id="tab-id" style="display:none">
+          <div class="form-group">
+            <label class="form-label form-label-light">National ID / Driver's Licence No.</label>
+            <input type="text" class="form-input" id="id-input" placeholder="e.g. 9911-22-330044-55" maxlength="20">
+          </div>
+        </div>
+        <button class="btn-search" onclick="lookupFine()">🔍 Search Fines</button>
+        <button class="btn-sample" onclick="renderFine(sampleFines.paid)">View Sample Paid Receipt</button>
+
+        <!-- RESULT -->
+        <div class="result-panel" id="result-panel">
+          <div class="fine-result" id="fine-result-box"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section no-print" id="how" style="background:var(--white); max-width:100%; padding: 64px 0;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 5%;">
+    <div class="section-eyebrow">Process</div>
+    <h2>How NexusFine Works</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num-badge">01</div>
+        <h3>📋 Fine Issued</h3>
+        <p>A traffic officer issues your fine electronically in the field. You receive an SMS notification instantly with your reference number.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num-badge">02</div>
+        <h3>🔍 Look Up Online</h3>
+        <p>Enter your plate or reference number here. View full fine details including offence, location, officer, and amount due.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num-badge">03</div>
+        <h3>💳 Pay Instantly</h3>
+        <p>Choose Airtel Money, TNM Mpamba, bank transfer, or card. Payment confirmation is immediate with no manual steps.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num-badge">04</div>
+        <h3>📄 Get Receipt</h3>
+        <p>Download or print your official payment receipt as PDF. Your record is updated in real time on the MPS system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAYMENT CHANNELS -->
+<section class="section no-print" id="channels">
+  <div class="section-eyebrow">Payment Methods</div>
+  <h2>Pay Your Way</h2>
+  <div class="channels-grid">
+    <div class="channel-card">
+      <div class="channel-icon-wrap">📱</div>
+      <h3>Airtel Money</h3>
+      <p>Pay directly from your Airtel wallet via this portal or dial *321#. Instant SMS confirmation.</p>
+      <span class="channel-tag">MOBILE MONEY</span>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon-wrap">📲</div>
+      <h3>TNM Mpamba</h3>
+      <p>Pay via Mpamba from any TNM line. Works without internet access via USSD.</p>
+      <span class="channel-tag">MOBILE MONEY</span>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon-wrap">🏦</div>
+      <h3>Bank Transfer</h3>
+      <p>Direct transfer to the MPS account. Quote your fine reference. Processed within 24 hours.</p>
+      <span class="channel-tag">BANK</span>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon-wrap">💳</div>
+      <h3>Debit / Credit Card</h3>
+      <p>Visa and Mastercard accepted. Secure 3DS payment gateway. Instant confirmation.</p>
+      <span class="channel-tag">CARD</span>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon-wrap">💬</div>
+      <h3>WhatsApp Bot</h3>
+      <p>Message the official NexusFine number. Our bot guides you through lookup and payment step by step.</p>
+      <span class="channel-tag">SELF-SERVICE</span>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon-wrap">📟</div>
+      <h3>USSD (*NXF#)</h3>
+      <p>No smartphone needed. Dial from any handset to check fines and pay. Works on all networks.</p>
+      <span class="channel-tag">USSD</span>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section no-print" id="faq" style="background:var(--white); max-width:100%; padding:64px 0;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 5%; display:grid; grid-template-columns:1fr 1.4fr; gap:60px; align-items:start;">
+    <div>
+      <div class="section-eyebrow">Help Centre</div>
+      <h2 style="margin-bottom:16px;">Frequently Asked Questions</h2>
+      <p style="font-size:14px; color:var(--text-muted-l); line-height:1.7; margin-bottom:24px;">Can't find your answer? Contact the MPS Traffic Department directly.</p>
+      <a href="tel:+2651800000" class="btn btn-secondary btn-block" style="background:var(--navy);color:white;justify-content:center;">📞 Call Support: +265 1 800 000</a>
+      <a href="#" class="btn btn-block mt-8" style="background:var(--off-white);border:1.5px solid var(--border-light);color:var(--text-on-light);justify-content:center;margin-top:8px;">💬 WhatsApp Support</a>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What happens if I don't pay my fine?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">Unpaid fines attract additional penalties after 30 days. Persistent non-payment may result in your vehicle being flagged at roadblocks and your licence suspended. Pay promptly to avoid escalation.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>How do I dispute a fine I believe is incorrect?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">Click the "Dispute This Fine" button on your fine result. Complete the online appeal form within 14 days of issue. Your appeal will be reviewed by a supervisor within 5 working days and you will receive an SMS update.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>How long does payment take to reflect?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">Mobile money and card payments reflect instantly. Bank transfers take up to 24 hours. You will receive an SMS confirmation once payment is processed. Download your receipt immediately after payment.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Can I pay on behalf of someone else?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">Yes. Enter the plate number or fine reference of any vehicle and proceed with payment. The receipt will be issued in the name of the registered fine holder. Keep the receipt as proof of payment.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Is this portal secure?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">NexusFine uses 256-bit SSL encryption for all transactions. Payment processing is handled by certified PCI-DSS compliant gateways. No card or account data is stored on our servers.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What is the fine for speeding in Malawi?</span><span class="chevron">▾</span></button>
+        <div class="faq-a">Speeding fines range from MWK 25,000 to MWK 100,000 depending on the degree of excess speed. Exceeding the limit by more than 30 km/h may result in licence suspension in addition to the fine.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="no-print">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="name">NEXUS<span>FINE</span></div>
+      <p>The official digital traffic fines management and payment platform of the Malawi Police Service, Road Safety &amp; Traffic Department. Powered by TechNexus MW.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <a href="#">Fine Lookup</a>
+      <a href="#">Pay a Fine</a>
+      <a href="#">Dispute a Fine</a>
+      <a href="#">Download Receipt</a>
+      <a href="#">USSD Guide (*NXF#)</a>
+    </div>
+    <div class="footer-col">
+      <h4>Information</h4>
+      <a href="#">Road Traffic Laws</a>
+      <a href="#">Offence Code List</a>
+      <a href="#">Contact MPS</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Malawi Police Service · Road Safety &amp; Traffic Department · Built by <a href="https://technexusmw.com">TechNexus MW</a></span>
+    <span>Emergency: <strong>997</strong> · Traffic Hotline: +265 1 800 000</span>
+  </div>
+</footer>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePayModal()">✕</button>
+    <div class="modal-inner">
+      <div id="pay-form-wrap">
+        <div class="pay-modal-title" id="pay-title">Pay via Mobile Money</div>
+        <div class="pay-modal-sub" id="pay-sub">Enter your mobile number to receive a payment prompt.</div>
+        <div class="pay-amount-row">
+          <div><div class="lbl">Fine Reference</div><div class="mono text-gold" style="font-size:12px;margin-top:2px" id="pay-ref-display">NXF-2026-00481</div></div>
+          <div style="text-align:right"><div class="lbl">Amount Due</div><div class="val" id="pay-amount-display">MWK 50,000</div></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <div class="phone-row">
+            <input class="country-code" value="+265" readonly>
+            <input type="tel" class="form-input" id="pay-phone" placeholder="088 000 0000" maxlength="12" style="flex:1">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="simulatePay()">Send Payment Prompt →</button>
+        <p style="font-size:11px;color:var(--text-muted-d);text-align:center;margin-top:10px;line-height:1.6">You will receive a prompt on your phone. Do not share your PIN with anyone.<br>This is a secure MPS-authorised payment channel.</p>
+      </div>
+      <div id="pay-success" style="display:none">
+        <div class="success-state">
+          <div class="success-icon-big">✅</div>
+          <h3>Payment Confirmed!</h3>
+          <p>Your fine has been marked as paid on the MPS system.</p>
+          <p class="receipt-ref" id="pay-receipt-ref"></p>
+          <button class="btn btn-gold btn-block mt-16" onclick="closePayModal();window.print()">📄 Print / Download Receipt</button>
+          <button class="btn btn-ghost btn-block mt-8" onclick="closePayModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DISPUTE MODAL -->
+<div class="modal-overlay" id="dispute-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('dispute-modal')">✕</button>
+    <div class="modal-inner">
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--gold-bright);margin-bottom:6px">FINE APPEAL · NXF-2026-00481</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text-on-dark);margin-bottom:16px">Dispute This Fine</div>
+      <div class="alert alert-warning">⚠ Appeals must be submitted within 14 days of the fine issue date.</div>
+      <div class="form-group">
+        <label class="form-label">Reason for Appeal</label>
+        <select class="form-input" style="cursor:pointer">
+          <option value="">— Select a reason —</option>
+          <option>I was not the driver at the time</option>
+          <option>The vehicle was stolen</option>
+          <option>Incorrect plate number recorded</option>
+          <option>Officer error / equipment fault</option>
+          <option>Medical emergency at time of offence</option>
+          <option>Other reason</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Details of Your Appeal</label>
+        <textarea class="form-input" rows="3" placeholder="Provide supporting details..." style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contact Phone Number</label>
+        <input type="tel" class="form-input" placeholder="+265 088 000 0000">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="alert('Appeal submitted. You will receive an SMS within 5 working days. Ref: APP-2026-0091');closeModal('dispute-modal')">Submit Appeal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── LANGUAGE ──
+const lang = {
+  en: { lookup: 'Find Your Fine', search: '🔍 Search Fines', sample: 'View Sample Paid Receipt' },
+  ny: { lookup: 'Peza Mulandu Wanu', search: '🔍 Sakani Mulandu', sample: 'Onani Chitsimikiziro Cholipidwa' }
+};
+function setLang(code, btn) {
+  document.querySelectorAll('.lang-toggle').forEach(b => b.classList.remove('active-lang'));
+  btn.classList.add('active-lang');
+  // Demo only — real implementation would swap all text nodes
+  if (code === 'ny') {
+    document.querySelector('.lookup-card-top h2').textContent = '🔍 ' + lang.ny.lookup;
+    document.querySelector('.btn-search').textContent = lang.ny.search;
+    document.querySelector('.btn-sample').textContent = lang.ny.sample;
+  } else {
+    document.querySelector('.lookup-card-top h2').textContent = '🔍 ' + lang.en.lookup;
+    document.querySelector('.btn-search').textContent = lang.en.search;
+    document.querySelector('.btn-sample').textContent = lang.en.sample;
+  }
+}
+
+// ── TABS ──
+const tabIds = { plate:'tab-plate', ref:'tab-ref', id:'tab-id' };
+let activeTab = 'plate';
+function switchTab(name, btn) {
+  Object.values(tabIds).forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById(tabIds[name]).style.display = 'block';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); activeTab = name;
+  document.getElementById('result-panel').style.display = 'none';
+}
+
+// ── FINE DATA ──
+const sampleFines = {
+  unpaid: {
+    ref:'NXF-2026-00481', plate:'MWK 1234 A', driver:'John M. Banda',
+    nid:'9911-22-330044-55', offence:'Exceeding Speed Limit (82 km/h in a 60 km/h zone)',
+    location:'M1 Road, Lilongwe — Near Area 18 Junction',
+    officer:'Cst. L. Phiri · Badge #T-0024', date:'03 April 2026 · 14:22',
+    due:'03 May 2026', status:'unpaid', amount:'MWK 50,000',
+    timeline: ['done','done','active','']
+  },
+  paid: {
+    ref:'NXF-2026-00209', plate:'BT 5521 B', driver:'Grace K. Tembo',
+    nid:'8802-11-220033-44', offence:'Failure to Stop at Red Traffic Light',
+    location:'Chipembere Highway, Blantyre — Crossroads Junction',
+    officer:'Sgt. R. Kachingwe · Badge #T-0011', date:'21 March 2026 · 09:47',
+    due:'21 April 2026', status:'paid', amount:'MWK 75,000',
+    paidDate:'22 March 2026 · 11:05', paidRef:'MPAY-2026-88123',
+    timeline: ['done','done','done','done']
+  }
+};
+
+function timelineHTML(steps) {
+  const labels = ['Issued','Notified','Due','Paid'];
+  const icons  = { done:'✓', active:'●', '':'○' };
+  return `<div class="fine-timeline">${steps.map((s,i) => `
+    <div class="timeline-step ${s}">
+      <div class="timeline-dot">${icons[s]||'○'}</div>
+      <div class="timeline-label">${labels[i]}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderFine(fine) {
+  const isPaid = fine.status === 'paid';
+  const amountSection = isPaid ? `
+    <div class="fine-amount-box">
+      <div><div class="lbl">Amount Paid</div><div style="font-size:11px;color:var(--text-muted-d);margin-top:2px">Paid on ${fine.paidDate}</div></div>
+      <div class="amount paid">${fine.amount}</div>
+    </div>
+    <div class="alert alert-success" style="margin-bottom:10px">✅ This fine is fully settled. Keep your receipt as proof.</div>
+    <div style="background:var(--off-white);border:1px solid var(--border-light);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--text-muted-l)">
+      Payment Reference: <strong class="mono text-gold">${fine.paidRef}</strong>
+    </div>
+    <button class="btn btn-secondary btn-block mt-16" onclick="window.print()">📄 Print Receipt</button>
+  ` : `
+    <div class="fine-amount-box">
+      <div><div class="lbl">Total Amount Due</div><div class="due-note">⚠ Due by ${fine.due}</div></div>
+      <div class="amount unpaid">${fine.amount}</div>
+    </div>
+    <div class="pay-grid">
+      <button class="pay-option" onclick="openPayModal('Airtel Money','${fine.amount}','${fine.ref}')"><span class="ico">📱</span>Airtel Money</button>
+      <button class="pay-option" onclick="openPayModal('TNM Mpamba','${fine.amount}','${fine.ref}')"><span class="ico">📲</span>TNM Mpamba</button>
+      <button class="pay-option" onclick="openPayModal('Bank Transfer','${fine.amount}','${fine.ref}')"><span class="ico">🏦</span>Bank Transfer</button>
+      <button class="pay-option" onclick="openPayModal('Card Payment','${fine.amount}','${fine.ref}')"><span class="ico">💳</span>Pay by Card</button>
+    </div>
+    <div class="appeal-row">
+      <button class="btn-appeal" onclick="openModal('dispute-modal')">⚑ Dispute This Fine</button>
+    </div>
+  `;
+
+  document.getElementById('fine-result-box').innerHTML = `
+    <div class="fine-result-header">
+      <div>
+        <div class="fine-ref-mono">${fine.ref}</div>
+        <div class="fine-plate-text">Vehicle: ${fine.plate}</div>
+      </div>
+      <span class="pill pill-${fine.status}">${fine.status.toUpperCase()}</span>
+    </div>
+    <div class="fine-result-body">
+      ${timelineHTML(fine.timeline)}
+      <div class="detail-grid">
+        <div class="detail-item"><div class="k">Driver</div><div class="v">${fine.driver}</div></div>
+        <div class="detail-item"><div class="k">Date Issued</div><div class="v">${fine.date}</div></div>
+        <div class="detail-item full"><div class="k">Offence</div><div class="v">${fine.offence}</div></div>
+        <div class="detail-item full"><div class="k">Location</div><div class="v" style="font-weight:400;color:var(--text-muted-l)">${fine.location}</div></div>
+        <div class="detail-item full"><div class="k">Issuing Officer</div><div class="v" style="font-size:12px;font-weight:500">${fine.officer}</div></div>
+      </div>
+      ${amountSection}
+    </div>`;
+  document.getElementById('result-panel').style.display = 'block';
+  document.getElementById('result-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function lookupFine() {
+  const inputMap = { plate:'plate-input', ref:'ref-input', id:'id-input' };
+  const val = document.getElementById(inputMap[activeTab]).value.trim();
+  if (!val) { alert('Please enter a value to search.'); return; }
+  renderFine(sampleFines.unpaid);
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let currentPayRef = '';
+function openPayModal(method, amount, ref) {
+  currentPayRef = ref;
+  document.getElementById('pay-title').textContent = `Pay via ${method}`;
+  document.getElementById('pay-sub').textContent =
+    method === 'Bank Transfer' ? `Use reference ${ref} when making the transfer to the MPS account.` :
+    method === 'Card Payment'  ? 'You will be directed to our secure card payment page.' :
+    'Enter your mobile number to receive a payment prompt.';
+  document.getElementById('pay-amount-display').textContent = amount;
+  document.getElementById('pay-ref-display').textContent = ref;
+  document.getElementById('pay-form-wrap').style.display = 'block';
+  document.getElementById('pay-success').style.display = 'none';
+  document.getElementById('pay-phone').value = '';
+  openModal('pay-modal');
+}
+function closePayModal() { closeModal('pay-modal'); }
+
+function simulatePay() {
+  const phone = document.getElementById('pay-phone').value.trim();
+  if (!phone) { alert('Please enter your mobile number.'); return; }
+  const receiptNo = 'MPAY-2026-' + Math.floor(10000 + Math.random() * 90000);
+  document.getElementById('pay-receipt-ref').textContent = 'Receipt No: ' + receiptNo;
+  document.getElementById('pay-form-wrap').style.display = 'none';
+  document.getElementById('pay-success').style.display = 'block';
+  // Update result card status
+  setTimeout(() => {
+    const pills = document.querySelectorAll('.pill-unpaid');
+    pills.forEach(p => { p.className = 'pill pill-paid'; p.textContent = 'PAID'; });
+  }, 400);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
+});
+
+// ── FAQ ──
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = answer.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-q').forEach(b => b.classList.remove('open'));
+  if (!isOpen) { answer.classList.add('open'); btn.classList.add('open'); }
+}
+
+// ── SMOOTH NAV ──
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', function() {
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
