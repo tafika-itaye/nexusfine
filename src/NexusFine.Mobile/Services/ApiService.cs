@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using NexusFine.Mobile.Models;
-
 namespace NexusFine.Mobile.Services;
 
 public class ApiService

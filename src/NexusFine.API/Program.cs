@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NexusFine.Infrastructure.Data;
+using NexusFine.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         sql => sql.MigrationsAssembly("NexusFine.Infrastructure")
     )
 );
+
+builder.Services.AddNexusFineInfrastructure(builder.Configuration);
 
 // ── CORS ──────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
