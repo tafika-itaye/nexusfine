@@ -1,0 +1,150 @@
+@page "/reconciliation"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Reconciliation — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Reports</div>
+    <h1 class="page-title">Reconciliation</h1>
+</div>
+
+<!-- DATE FILTERS -->
+<div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group" style="margin:0">
+        <label class="form-label">From</label>
+        <input type="date" class="form-input" @bind="_from">
+    </div>
+    <div class="form-group" style="margin:0">
+        <label class="form-label">To</label>
+        <input type="date" class="form-input" @bind="_to">
+    </div>
+    <div class="form-group" style="margin:0;min-width:140px">
+        <label class="form-label">Zone</label>
+        <select class="form-input" @bind="_zone">
+            <option value="">All Zones</option>
+            <option value="Lilongwe">Lilongwe</option>
+            <option value="Blantyre">Blantyre</option>
+            <option value="Mzuzu">Mzuzu</option>
+            <option value="Zomba">Zomba</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" @onclick="Load">🔍 Run Report</button>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Generating report...</span></div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">⚠ @_error</div>
+}
+else if (_data is not null)
+{
+    <!-- SUMMARY CARDS -->
+    <div class="recon-panel mb-16">
+        <div class="recon-item">
+            <div class="rl">Total Issued</div>
+            <div class="rv" style="color:var(--text-on-dark)">MK @_data.TotalIssued.ToString("N0")</div>
+        </div>
+        <div class="recon-item">
+            <div class="rl">Collected</div>
+            <div class="rv" style="color:var(--success-text)">MK @_data.TotalCollected.ToString("N0")</div>
+        </div>
+        <div class="recon-item">
+            <div class="rl">Outstanding</div>
+            <div class="rv" style="color:var(--warning-text)">MK @_data.TotalOutstanding.ToString("N0")</div>
+        </div>
+        <div class="recon-item">
+            <div class="rl">Overdue</div>
+            <div class="rv" style="color:var(--red-bright)">MK @_data.TotalOverdue.ToString("N0")</div>
+        </div>
+    </div>
+
+    <!-- BY ZONE TABLE -->
+    <div class="panel">
+        <div class="panel-hdr">
+            <div class="panel-title">Breakdown by Zone</div>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Zone</th>
+                        <th>Fines Issued</th>
+                        <th>Fines Collected</th>
+                        <th>Amount Issued</th>
+                        <th>Amount Collected</th>
+                        <th>Collection Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var z in _data.ByZone)
+                    {
+                        var rateColor = z.Rate >= 75 ? "var(--success-text)"
+                                      : z.Rate >= 65 ? "var(--warning-text)"
+                                      : "var(--red-bright)";
+                        <tr>
+                            <td style="font-weight:700">@z.Zone</td>
+                            <td class="mono">@z.Issued</td>
+                            <td class="mono" style="color:var(--success-text)">@z.Collected</td>
+                            <td class="mono">MK @z.AmountIssued.ToString("N0")</td>
+                            <td class="mono" style="color:var(--success-text)">MK @z.AmountCollected.ToString("N0")</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <div style="flex:1;height:5px;background:var(--border-mid);border-radius:3px;overflow:hidden">
+                                        <div style="width:@z.Rate%;height:100%;background:@rateColor;border-radius:3px"></div>
+                                    </div>
+                                    <span class="mono" style="font-size:12px;color:@rateColor;font-weight:700">@z.Rate%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private bool    _loading = false;
+    private string? _error;
+    private ReconDto? _data;
+
+    private DateTime _from = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+    private DateTime _to   = DateTime.Now;
+    private string?  _zone;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = $"api/dashboard/reconciliation?from={_from:yyyy-MM-dd}&to={_to:yyyy-MM-dd}";
+            if (!string.IsNullOrEmpty(_zone)) url += $"&zone={_zone}";
+            _data = await Http.GetFromJsonAsync<ReconDto>(url);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    record ReconDto(
+        decimal TotalIssued,
+        decimal TotalCollected,
+        decimal TotalOutstanding,
+        decimal TotalOverdue,
+        List<ZoneDto> ByZone
+    );
+
+    record ZoneDto(
+        string  Zone,
+        int     Issued,
+        int     Collected,
+        decimal AmountIssued,
+        decimal AmountCollected,
+        decimal Rate
+    );
+}

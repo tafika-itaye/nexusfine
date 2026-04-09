@@ -1,0 +1,136 @@
+@* ── OFFICERS PAGE ── *@
+@page "/officers"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Officers — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Management</div>
+    <h1 class="page-title">Officers</h1>
+</div>
+
+<!-- ZONE FILTER -->
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+    @foreach (var zone in new[] { "All", "Lilongwe", "Blantyre", "Mzuzu", "Zomba" })
+    {
+        <button class="btn btn-sm @(_activeZone==zone?"btn-primary":"btn-ghost")"
+                @onclick="() => SetZone(zone)">
+            @zone
+        </button>
+    }
+    <button class="btn btn-sm btn-ghost" style="margin-left:auto" @onclick="LoadOfficers">↻ Refresh</button>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">Officer Performance — Today</div>
+            <div class="panel-sub">@_officers.Count officers · ranked by fines issued</div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading officers...</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Officer</th>
+                        <th>Zone</th>
+                        <th>Status</th>
+                        <th>Device</th>
+                        <th>Issued</th>
+                        <th>Collected</th>
+                        <th>Rate</th>
+                        <th>Last Location</th>
+                        <th>Last Sync</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_officers.Any())
+                    {
+                        <tr><td colspan="10" style="text-align:center;color:var(--text-muted-d);padding:32px">No officers found.</td></tr>
+                    }
+                    @for (int i = 0; i < _officers.Count; i++)
+                    {
+                        var o = _officers[i];
+                        var rate = o.FinesIssued > 0 ? Math.Round((double)o.FinesCollected / o.FinesIssued * 100, 0) : 0;
+                        var rateColor = rate >= 75 ? "var(--success-text)" : rate >= 50 ? "var(--warning-text)" : "var(--red-bright)";
+                        <tr>
+                            <td class="mono" style="color:var(--text-muted-d)">@((i+1).ToString("D2"))</td>
+                            <td>
+                                <div style="font-weight:600">@o.FullName</div>
+                                <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber · @o.Rank</div>
+                            </td>
+                            <td style="font-size:12px;color:var(--text-muted-d)">@o.Zone</td>
+                            <td><span class="pill pill-@o.Status.ToLower()">@o.Status</span></td>
+                            <td class="mono" style="font-size:11px;color:var(--text-muted-d)">@o.DeviceId</td>
+                            <td class="mono fw-700" style="color:var(--gold-bright)">@o.FinesIssued</td>
+                            <td class="mono fw-700" style="color:var(--success-text)">@o.FinesCollected</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <div style="flex:1;height:4px;background:var(--border-mid);border-radius:2px;overflow:hidden">
+                                        <div style="width:@rate%;height:100%;background:@rateColor;border-radius:2px"></div>
+                                    </div>
+                                    <span class="mono" style="font-size:11px;color:var(--text-muted-d)">@rate%</span>
+                                </div>
+                            </td>
+                            <td style="font-size:11px;color:var(--text-muted-d)">📍 @o.LastKnownLocation</td>
+                            <td style="font-size:11px;color:var(--text-muted-d)">@o.LastSyncAt?.ToString("HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private List<OfficerPerfDto> _officers = new();
+    private string _activeZone = "All";
+
+    protected override async Task OnInitializedAsync() => await LoadOfficers();
+
+    private async Task SetZone(string zone) { _activeZone = zone; await LoadOfficers(); }
+
+    private async Task LoadOfficers()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = "api/officers/performance";
+            if (_activeZone != "All") url += $"?zone={_activeZone}";
+            _officers = await Http.GetFromJsonAsync<List<OfficerPerfDto>>(url) ?? new();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    record OfficerPerfDto(
+        string   BadgeNumber,
+        string   FullName,
+        string   Rank,
+        string   Status,
+        string   Zone,
+        string?  DeviceId,
+        string?  LastKnownLocation,
+        DateTime? LastSyncAt,
+        int      FinesIssued,
+        int      FinesCollected,
+        decimal  AmountIssued,
+        decimal  AmountCollected,
+        double   CollectionRate
+    );
+}

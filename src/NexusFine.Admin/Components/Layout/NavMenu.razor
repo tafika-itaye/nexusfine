@@ -1,30 +1,72 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">NexusFine.Admin</a>
+﻿@using Microsoft.AspNetCore.Components.Routing
+
+<nav class="sidebar">
+    <div class="sidebar-brand">
+        <div class="gov-strip">
+            <div class="flag-mini">
+                <span class="f1"></span>
+                <span class="f2"></span>
+                <span class="f3"></span>
+            </div>
+            MPS · DRTSS
+        </div>
+        <div class="brand-row">
+            <div class="brand-eagle">🦅</div>
+            <div>
+                <div class="brand-name">NEXUS<span>FINE</span></div>
+                <div class="brand-sub">Admin Portal</div>
+            </div>
+        </div>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <div class="nav-group-label">Operations</div>
+    <NavLink class="nav-item" href="" Match="NavLinkMatch.All">
+        <span class="ni">📊</span> Dashboard
+    </NavLink>
+    <NavLink class="nav-item" href="fines">
+        <span class="ni">📋</span> All Fines
+    </NavLink>
+    <NavLink class="nav-item" href="payments">
+        <span class="ni">💳</span> Payments
+    </NavLink>
+    <NavLink class="nav-item" href="reconciliation">
+        <span class="ni">🔁</span> Reconciliation
+    </NavLink>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
+    <div class="nav-group-label">Management</div>
+    <NavLink class="nav-item" href="officers">
+        <span class="ni">👮</span> Officers
+    </NavLink>
+    <NavLink class="nav-item" href="departments">
+        <span class="ni">🏢</span> Departments
+    </NavLink>
+    <NavLink class="nav-item" href="offencecodes">
+        <span class="ni">⚖️</span> Offence Codes
+    </NavLink>
+
+    <div class="nav-group-label">Reports</div>
+    <NavLink class="nav-item" href="analytics">
+        <span class="ni">📈</span> Analytics
+    </NavLink>
+    <NavLink class="nav-item" href="auditlog">
+        <span class="ni">📄</span> Audit Log
+    </NavLink>
+
+    <div class="nav-group-label">System</div>
+    <NavLink class="nav-item" href="alerts">
+        <span class="ni">🔔</span> Alerts
+    </NavLink>
+    <NavLink class="nav-item" href="settings">
+        <span class="ni">⚙️</span> Settings
+    </NavLink>
+
+    <div class="sidebar-footer">
+        <div class="user-row">
+            <div class="user-av">SK</div>
+            <div>
+                <div class="user-name">Supt. S. Kachali</div>
+                <div class="user-role">Senior Supervisor</div>
+            </div>
         </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
+    </div>
+</nav>

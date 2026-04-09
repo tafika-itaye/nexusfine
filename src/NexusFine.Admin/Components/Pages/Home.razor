@@ -1,7 +1,247 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard — NexusFine Admin</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="page-header">
+    <div class="section-eyebrow">Operations</div>
+    <h1 class="page-title">Dashboard</h1>
+</div>
 
-Welcome to your new app.
+@if (_loading)
+{
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading dashboard data...</span>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">
+        ⚠ Could not connect to NexusFine API: @_error
+        <button class="btn btn-sm btn-ghost" @onclick="LoadAll">Retry</button>
+    </div>
+}
+else
+{
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+        <div class="kpi-card gold">
+            <div class="kpi-accent" style="background:var(--gold)"></div>
+            <div class="kpi-label">Fines Issued Today</div>
+            <div class="kpi-value" style="color:var(--gold-bright)">@_kpis?.IssuedToday.ToString("N0")</div>
+            <div class="kpi-bg-icon">📋</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-accent" style="background:var(--success-text)"></div>
+            <div class="kpi-label">Revenue — Month to Date</div>
+            <div class="kpi-value" style="color:var(--success-text)">MK @_kpis?.RevenueMonth.ToString("N0")</div>
+            <div class="kpi-bg-icon">💰</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-accent" style="background:var(--navy-light)"></div>
+            <div class="kpi-label">Collection Rate</div>
+            <div class="kpi-value" style="color:var(--text-on-dark)">@_kpis?.CollectionRate.ToString("N1")%</div>
+            <div class="kpi-bg-icon">✅</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-accent" style="background:var(--red)"></div>
+            <div class="kpi-label">Officers On Duty</div>
+            <div class="kpi-value" style="color:var(--text-on-dark)">
+                @_kpis?.OfficersOnDuty
+                <span style="font-size:14px;color:var(--text-muted-d)">/@_kpis?.OfficersTotal</span>
+            </div>
+            <div class="kpi-bg-icon">👮</div>
+        </div>
+    </div>
+
+    <!-- RECENT FINES -->
+    <div class="panel mt-16">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">Live Fine Feed</div>
+                <div class="panel-sub">Most recent issuances</div>
+            </div>
+            <div class="live-dot"></div>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Plate</th>
+                        <th>Offence</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Issued</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_recentFines is null || !_recentFines.Any())
+                    {
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:var(--text-muted-d);padding:24px">
+                                No fines recorded yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var f in _recentFines)
+                        {
+                            <tr>
+                                <td class="mono text-gold">@f.ReferenceNumber</td>
+                                <td class="mono fw-700">@f.PlateNumber</td>
+                                <td>@f.Offence</td>
+                                <td class="mono">MK @f.Amount.ToString("N0")</td>
+                                <td><span class="pill pill-@f.Status.ToLower()">@f.Status</span></td>
+                                <td style="color:var(--text-muted-d);font-size:12px">@f.IssuedAt.ToString("dd MMM · HH:mm")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- OFFICER PERFORMANCE -->
+    <div class="panel mt-16">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">Officer Performance — Today</div>
+                <div class="panel-sub">Ranked by fines issued</div>
+            </div>
+            <a href="officers" class="btn btn-sm btn-ghost">View All</a>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Officer</th>
+                        <th>Zone</th>
+                        <th>Status</th>
+                        <th>Issued</th>
+                        <th>Collected</th>
+                        <th>Rate</th>
+                        <th>Last Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_officers is null || !_officers.Any())
+                    {
+                        <tr>
+                            <td colspan="8" style="text-align:center;color:var(--text-muted-d);padding:24px">
+                                No officer data available.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @for (int i = 0; i < _officers.Count; i++)
+                        {
+                            var o = _officers[i];
+                            var rank = i + 1;
+                            var rate = o.FinesIssued > 0
+                                ? Math.Round((double)o.FinesCollected / o.FinesIssued * 100, 0)
+                                : 0;
+                            var rateColor = rate >= 75 ? "var(--success-text)"
+                                          : rate >= 50 ? "var(--warning-text)"
+                                          : "var(--red-bright)";
+                            <tr>
+                                <td class="mono" style="color:var(--text-muted-d)">@rank.ToString("D2")</td>
+                                <td>
+                                    <div style="font-weight:600">@o.FullName</div>
+                                    <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber</div>
+                                </td>
+                                <td style="color:var(--text-muted-d);font-size:12px">@o.Zone</td>
+                                <td><span class="pill pill-@o.Status.ToLower()">@o.Status</span></td>
+                                <td class="mono fw-700" style="color:var(--gold-bright)">@o.FinesIssued</td>
+                                <td class="mono fw-700" style="color:var(--success-text)">@o.FinesCollected</td>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <div style="flex:1;height:4px;background:var(--border-mid);border-radius:2px;overflow:hidden">
+                                            <div style="width:@rate%;height:100%;background:@rateColor;border-radius:2px"></div>
+                                        </div>
+                                        <span class="mono" style="font-size:11px;color:var(--text-muted-d)">@rate%</span>
+                                    </div>
+                                </td>
+                                <td style="font-size:11px;color:var(--text-muted-d)">📍 @o.LastKnownLocation</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private KpiDto? _kpis;
+    private List<RecentFineDto>? _recentFines;
+    private List<OfficerPerfDto>? _officers;
+
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task LoadAll()
+    {
+        _loading = true;
+        _error   = null;
+        try
+        {
+            var kpisTask    = Http.GetFromJsonAsync<KpiDto>("api/dashboard/kpis");
+            var recentTask  = Http.GetFromJsonAsync<List<RecentFineDto>>("api/dashboard/recent?limit=8");
+            var officerTask = Http.GetFromJsonAsync<List<OfficerPerfDto>>("api/officers/performance");
+
+            await Task.WhenAll(kpisTask, recentTask, officerTask);
+
+            _kpis        = kpisTask.Result;
+            _recentFines = recentTask.Result;
+            _officers    = officerTask.Result;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────
+    record KpiDto(
+        int     IssuedToday,
+        decimal RevenueMonth,
+        decimal CollectionRate,
+        int     OfficersOnDuty,
+        int     OfficersTotal
+    );
+
+    record RecentFineDto(
+        string   ReferenceNumber,
+        string   PlateNumber,
+        string   Status,
+        decimal  Amount,
+        DateTime IssuedAt,
+        string   Offence
+    );
+
+    record OfficerPerfDto(
+        string  BadgeNumber,
+        string  FullName,
+        string  Rank,
+        string  Status,
+        string  Zone,
+        string? LastKnownLocation,
+        int     FinesIssued,
+        int     FinesCollected,
+        decimal AmountIssued,
+        decimal AmountCollected,
+        double  CollectionRate
+    );
+}

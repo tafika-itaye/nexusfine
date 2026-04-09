@@ -1,0 +1,198 @@
+@page "/fines"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>All Fines — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Operations</div>
+    <h1 class="page-title">All Fines</h1>
+</div>
+
+<!-- FILTERS -->
+<div class="panel mb-16">
+    <div class="panel-body" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="margin:0;min-width:160px">
+            <label class="form-label">Status</label>
+            <select class="filter-select form-input" @bind="_filterStatus">
+                <option value="">All Statuses</option>
+                <option value="Unpaid">Unpaid</option>
+                <option value="Paid">Paid</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Disputed">Disputed</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:160px">
+            <label class="form-label">Zone</label>
+            <select class="filter-select form-input" @bind="_filterZone">
+                <option value="">All Zones</option>
+                <option value="Lilongwe">Lilongwe</option>
+                <option value="Blantyre">Blantyre</option>
+                <option value="Mzuzu">Mzuzu</option>
+                <option value="Zomba">Zomba</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">From</label>
+            <input type="date" class="form-input" @bind="_filterFrom">
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">To</label>
+            <input type="date" class="form-input" @bind="_filterTo">
+        </div>
+        <button class="btn btn-primary" @onclick="LoadFines">🔍 Apply Filters</button>
+        <button class="btn btn-ghost" @onclick="ClearFilters">Clear</button>
+    </div>
+</div>
+
+<!-- TABLE -->
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">Fines Register</div>
+            <div class="panel-sub">@(_total) total records</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" @onclick="LoadFines">↻ Refresh</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading...</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Plate</th>
+                        <th>Driver</th>
+                        <th>Offence</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Officer</th>
+                        <th>Issued</th>
+                        <th>Due</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_fines.Any())
+                    {
+                        <tr>
+                            <td colspan="9" style="text-align:center;color:var(--text-muted-d);padding:32px">
+                                No fines found matching the selected filters.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var f in _fines)
+                    {
+                        <tr>
+                            <td class="mono text-gold" style="font-size:12px">@f.ReferenceNumber</td>
+                            <td class="mono fw-700">@f.PlateNumber</td>
+                            <td>
+                                <div style="font-weight:500">@f.DriverName</div>
+                                <div style="font-size:11px;color:var(--text-muted-d)">@f.DriverNationalId</div>
+                            </td>
+                            <td style="font-size:12px;max-width:180px">
+                                @f.OffenceCode?.Name
+                            </td>
+                            <td class="mono" style="color:@(f.Status=="Paid"?"var(--success-text)":"var(--red-bright)")">
+                                MK @f.Amount.ToString("N0")
+                            </td>
+                            <td><span class="pill pill-@f.Status.ToLower()">@f.Status</span></td>
+                            <td style="font-size:12px">
+                                <div>@f.Officer?.FullName</div>
+                                <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@f.Officer?.BadgeNumber</div>
+                            </td>
+                            <td style="font-size:11px;color:var(--text-muted-d)">@f.IssuedAt.ToString("dd MMM yyyy")</td>
+                            <td style="font-size:11px;color:@(f.DueDate < DateTime.Now && f.Status=="Unpaid"?"var(--red-bright)":"var(--text-muted-d)")">
+                                @f.DueDate.ToString("dd MMM yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-top:1px solid var(--border-mid)">
+            <span style="font-size:12px;color:var(--text-muted-d)">
+                Showing @((_page-1)*_pageSize + 1)–@(Math.Min(_page*_pageSize, _total)) of @_total
+            </span>
+            <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-ghost" @onclick="PrevPage" disabled="@(_page==1)">← Prev</button>
+                <button class="btn btn-sm btn-ghost" @onclick="NextPage" disabled="@(_page*_pageSize>=_total)">Next →</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool    _loading = true;
+    private string? _error;
+    private List<FineDto> _fines = new();
+    private int     _total;
+    private int     _page     = 1;
+    private int     _pageSize = 25;
+
+    private string?   _filterStatus;
+    private string?   _filterZone;
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+
+    protected override async Task OnInitializedAsync() => await LoadFines();
+
+    private async Task LoadFines()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = $"api/fines?page={_page}&pageSize={_pageSize}";
+            if (!string.IsNullOrEmpty(_filterStatus)) url += $"&status={_filterStatus}";
+            if (_filterFrom.HasValue) url += $"&from={_filterFrom:yyyy-MM-dd}";
+            if (_filterTo.HasValue)   url += $"&to={_filterTo:yyyy-MM-dd}";
+
+            var result = await Http.GetFromJsonAsync<PagedResult<FineDto>>(url);
+            _fines = result?.Data ?? new();
+            _total = result?.Total ?? 0;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task PrevPage() { if (_page > 1) { _page--; await LoadFines(); } }
+    private async Task NextPage() { _page++; await LoadFines(); }
+    private async Task ClearFilters()
+    {
+        _filterStatus = null; _filterZone = null;
+        _filterFrom = null; _filterTo = null;
+        _page = 1;
+        await LoadFines();
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────
+    record PagedResult<T>(int Total, int Page, int PageSize, List<T> Data);
+
+    record FineDto(
+        int      Id,
+        string   ReferenceNumber,
+        string   PlateNumber,
+        string   DriverName,
+        string?  DriverNationalId,
+        string   Status,
+        decimal  Amount,
+        DateTime IssuedAt,
+        DateTime DueDate,
+        OffenceCodeDto? OffenceCode,
+        OfficerDto?     Officer
+    );
+
+    record OffenceCodeDto(string Code, string Name, string Description);
+    record OfficerDto(string BadgeNumber, string FullName, string Rank);
+}
