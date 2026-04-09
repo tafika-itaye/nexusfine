@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="NexusFine.Mobile.Pages.IssuFinePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#0e1729"
+    Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,50,20,32" Spacing="0">
+
+            <!-- HEADER -->
+            <Label Text="ISSUE FINE" FontSize="11" TextColor="#c8960c"
+                   CharacterSpacing="3" Margin="0,0,0,4"/>
+            <Label Text="New Traffic Fine" FontSize="22" FontAttributes="Bold"
+                   TextColor="#e8edf8" Margin="0,0,0,28"/>
+
+            <!-- SUCCESS MESSAGE -->
+            <Frame x:Name="SuccessFrame" BackgroundColor="#1a7a4a22" BorderColor="#1a7a4a"
+                   CornerRadius="8" Padding="14,12" IsVisible="False" Margin="0,0,0,16">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="✅ Fine Issued Successfully" TextColor="#22a060"
+                           FontAttributes="Bold" FontSize="14"/>
+                    <Label x:Name="SuccessRefLabel" TextColor="#22a060" FontSize="12"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ERROR MESSAGE -->
+            <Frame x:Name="ErrorFrame" BackgroundColor="#c0392b22" BorderColor="#c0392b"
+                   CornerRadius="8" Padding="12,10" IsVisible="False" Margin="0,0,0,16">
+                <Label x:Name="ErrorLabel" TextColor="#e74c3c" FontSize="13"/>
+            </Frame>
+
+            <!-- SECTION: VEHICLE -->
+            <Frame BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                   CornerRadius="12" Padding="16" HasShadow="False" Margin="0,0,0,16">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="🚗  VEHICLE DETAILS" FontSize="10" TextColor="#7b8db8"
+                           CharacterSpacing="2" FontAttributes="Bold"/>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="REGISTRATION PLATE *" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Entry x:Name="PlateEntry" Placeholder="e.g. MWK 1234 A"
+                               PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                               BackgroundColor="#0e1729" FontSize="16" FontAttributes="Bold"/>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="MAKE" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                            <Entry x:Name="MakeEntry" Placeholder="Toyota"
+                                   PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                                   BackgroundColor="#0e1729" FontSize="14"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="COLOUR" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                            <Entry x:Name="ColourEntry" Placeholder="White"
+                                   PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                                   BackgroundColor="#0e1729" FontSize="14"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- SECTION: DRIVER -->
+            <Frame BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                   CornerRadius="12" Padding="16" HasShadow="False" Margin="0,0,0,16">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="👤  DRIVER DETAILS" FontSize="10" TextColor="#7b8db8"
+                           CharacterSpacing="2" FontAttributes="Bold"/>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="FULL NAME *" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Entry x:Name="DriverNameEntry" Placeholder="e.g. John M. Banda"
+                               PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                               BackgroundColor="#0e1729" FontSize="14"/>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="NATIONAL ID" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                            <Entry x:Name="NidEntry" Placeholder="9911-22-330044"
+                                   PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                                   BackgroundColor="#0e1729" FontSize="13"
+                                   Keyboard="Numeric"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="PHONE" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                            <Entry x:Name="PhoneEntry" Placeholder="+265 088..."
+                                   PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                                   BackgroundColor="#0e1729" FontSize="13"
+                                   Keyboard="Telephone"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- SECTION: OFFENCE -->
+            <Frame BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                   CornerRadius="12" Padding="16" HasShadow="False" Margin="0,0,0,16">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="⚖️  OFFENCE" FontSize="10" TextColor="#7b8db8"
+                           CharacterSpacing="2" FontAttributes="Bold"/>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="OFFENCE TYPE *" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Picker x:Name="OffencePicker"
+                                Title="Select offence..."
+                                TitleColor="#2a3d6b"
+                                TextColor="#e8edf8"
+                                BackgroundColor="#0e1729"
+                                SelectedIndexChanged="OnOffenceSelected"/>
+                    </VerticalStackLayout>
+
+                    <Frame x:Name="AmountFrame" BackgroundColor="#0e1729" BorderColor="#c0392b"
+                           CornerRadius="8" Padding="14,10" HasShadow="False" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Fine Amount:" TextColor="#7b8db8" FontSize="13"/>
+                            <Label x:Name="AmountLabel" Grid.Column="1"
+                                   TextColor="#e74c3c" FontSize="16" FontAttributes="Bold"/>
+                        </Grid>
+                    </Frame>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="LOCATION *" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Entry x:Name="LocationEntry" Placeholder="e.g. M1 Road, Area 18 Junction"
+                               PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                               BackgroundColor="#0e1729" FontSize="13"/>
+                    </VerticalStackLayout>
+
+                    <Button Text="📍 Use Current GPS Location"
+                            BackgroundColor="#1a2744" TextColor="#7b8db8"
+                            FontSize="13" CornerRadius="8" HeightRequest="44"
+                            BorderColor="#2a3d6b" BorderWidth="1"
+                            Clicked="OnGetLocationClicked"/>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="NOTES" FontSize="9" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Editor x:Name="NotesEditor" Placeholder="Optional notes..."
+                                PlaceholderColor="#2a3d6b" TextColor="#e8edf8"
+                                BackgroundColor="#0e1729" FontSize="13"
+                                HeightRequest="80" AutoSize="Disabled"/>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- SUBMIT -->
+            <Button x:Name="SubmitButton"
+                    Text="Issue Fine →"
+                    BackgroundColor="#c0392b"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    FontSize="16"
+                    CornerRadius="10"
+                    HeightRequest="56"
+                    Clicked="OnSubmitClicked"
+                    Margin="0,8,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

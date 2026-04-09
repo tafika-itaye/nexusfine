@@ -3,12 +3,47 @@
     x:Class="NexusFine.Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:NexusFine.Mobile"
-    Title="NexusFine.Mobile">
+    xmlns:pages="clr-namespace:NexusFine.Mobile.Pages"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#111c33">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <Shell.Resources>
+        <ResourceDictionary>
+            <Color x:Key="NavyDark">#111c33</Color>
+            <Color x:Key="Navy">#1a2744</Color>
+            <Color x:Key="Gold">#c8960c</Color>
+            <Color x:Key="GoldBright">#f0b429</Color>
+            <Color x:Key="Red">#c0392b</Color>
+            <Color x:Key="White">#e8edf8</Color>
+            <Color x:Key="Muted">#7b8db8</Color>
+            <Color x:Key="Surface1">#131f3a</Color>
+            <Color x:Key="SuccessText">#22a060</Color>
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <TabBar Shell.TabBarBackgroundColor="#111c33"
+            Shell.TabBarForegroundColor="#7b8db8"
+            Shell.TabBarUnselectedColor="#7b8db8"
+            Shell.TabBarTitleColor="#f0b429">
+
+        <Tab Title="Dashboard" Icon="icon_dashboard.png">
+            <ShellContent
+                ContentTemplate="{DataTemplate pages:DashboardPage}"
+                Route="dashboard" />
+        </Tab>
+
+        <Tab Title="Issue Fine" Icon="icon_fine.png">
+            <ShellContent
+                ContentTemplate="{DataTemplate pages:IssuFinePage}"
+                Route="issuefine" />
+        </Tab>
+
+        <Tab Title="My Fines" Icon="icon_list.png">
+            <ShellContent
+                ContentTemplate="{DataTemplate pages:MyFinesPage}"
+                Route="myfines" />
+        </Tab>
+
+    </TabBar>
 
 </Shell>

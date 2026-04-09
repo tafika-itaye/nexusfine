@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="NexusFine.Mobile.Pages.MyFinesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#0e1729"
+    Shell.NavBarIsVisible="False">
+
+    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing" RefreshColor="#c8960c">
+        <VerticalStackLayout Padding="20,50,20,20" Spacing="0">
+
+            <!-- HEADER -->
+            <Label Text="MY FINES" FontSize="11" TextColor="#c8960c"
+                   CharacterSpacing="3" Margin="0,0,0,4"/>
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+                <Label Grid.Column="0" Text="My Issuances"
+                       FontSize="22" FontAttributes="Bold" TextColor="#e8edf8"/>
+                <Label x:Name="TotalLabel" Grid.Column="1"
+                       Text="0 total" FontSize="12" TextColor="#7b8db8"
+                       VerticalOptions="End"/>
+            </Grid>
+
+            <!-- STATS ROW -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" Margin="0,0,0,20">
+                <Frame Grid.Column="0" BackgroundColor="#131f3a" BorderColor="#c0392b22"
+                       CornerRadius="10" Padding="12,10" HasShadow="False">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="UNPAID" FontSize="8" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Label x:Name="UnpaidCount" Text="0" FontSize="20"
+                               FontAttributes="Bold" TextColor="#e74c3c"/>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="1" BackgroundColor="#131f3a" BorderColor="#1a7a4a22"
+                       CornerRadius="10" Padding="12,10" HasShadow="False">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="PAID" FontSize="8" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Label x:Name="PaidCount" Text="0" FontSize="20"
+                               FontAttributes="Bold" TextColor="#22a060"/>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="2" BackgroundColor="#131f3a" BorderColor="#c8960c22"
+                       CornerRadius="10" Padding="12,10" HasShadow="False">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="TOTAL MK" FontSize="8" TextColor="#7b8db8" CharacterSpacing="1"/>
+                        <Label x:Name="TotalAmount" Text="0" FontSize="14"
+                               FontAttributes="Bold" TextColor="#f0b429"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <!-- LOADING -->
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="True" IsVisible="True"
+                               Color="#c8960c" Margin="0,20"/>
+
+            <!-- LIST -->
+            <CollectionView x:Name="FinesView" IsVisible="False"
+                            EmptyView="No fines issued yet.">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame BackgroundColor="#131f3a" BorderColor="#1e2e52"
+                               CornerRadius="10" Padding="14" HasShadow="False"
+                               Margin="0,0,0,10">
+                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                <!-- ROW 1: Ref + Status -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding ReferenceNumber}"
+                                           FontSize="11" TextColor="#f0b429"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Status}"
+                                           FontSize="10" TextColor="{Binding StatusColour}"
+                                           FontAttributes="Bold"/>
+                                </Grid>
+                                <!-- ROW 2: Plate + Amount -->
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding PlateNumber}"
+                                           FontSize="18" FontAttributes="Bold"
+                                           TextColor="#e8edf8"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding FormattedAmount}"
+                                           FontSize="16" FontAttributes="Bold"
+                                           TextColor="{Binding StatusColour}"/>
+                                </Grid>
+                                <!-- ROW 3: Offence + Date -->
+                                <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding OffenceCode.Name}"
+                                           FontSize="12" TextColor="#7b8db8"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding IssuedAt, StringFormat='{0:dd MMM yyyy}'}"
+                                           FontSize="11" TextColor="#7b8db8"/>
+                                </Grid>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </RefreshView>
+
+</ContentPage>

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="NexusFine.Mobile.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#0e1729"
+    Shell.NavBarIsVisible="False">
+
+    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing" RefreshColor="#c8960c">
+        <ScrollView>
+            <VerticalStackLayout Padding="20,50,20,20" Spacing="0">
+
+                <!-- HEADER -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,24">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label x:Name="GreetingLabel" Text="Good morning,"
+                               FontSize="13" TextColor="#7b8db8"/>
+                        <Label x:Name="OfficerNameLabel" Text="Officer"
+                               FontSize="20" FontAttributes="Bold" TextColor="#e8edf8"/>
+                        <Label x:Name="BadgeLabel" Text=""
+                               FontSize="11" TextColor="#c8960c" CharacterSpacing="1"/>
+                    </VerticalStackLayout>
+                    <Frame Grid.Column="1" BackgroundColor="#1a2744" BorderColor="#c8960c"
+                           CornerRadius="20" HeightRequest="40" WidthRequest="40"
+                           Padding="0" HasShadow="False" VerticalOptions="Start">
+                        <Label Text="🦅" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                </Grid>
+
+                <!-- KPI CARDS -->
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                      ColumnSpacing="12" RowSpacing="12" Margin="0,0,0,24">
+
+                    <!-- Fines Today -->
+                    <Frame Grid.Row="0" Grid.Column="0"
+                           BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                           CornerRadius="12" Padding="16" HasShadow="False">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="ISSUED TODAY" FontSize="9" TextColor="#7b8db8" CharacterSpacing="2"/>
+                            <Label x:Name="IssuedTodayLabel" Text="0"
+                                   FontSize="28" FontAttributes="Bold" TextColor="#f0b429"/>
+                            <Label Text="fines" FontSize="11" TextColor="#7b8db8"/>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Revenue -->
+                    <Frame Grid.Row="0" Grid.Column="1"
+                           BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                           CornerRadius="12" Padding="16" HasShadow="False">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="MTD REVENUE" FontSize="9" TextColor="#7b8db8" CharacterSpacing="2"/>
+                            <Label x:Name="RevenueLabel" Text="MK 0"
+                                   FontSize="20" FontAttributes="Bold" TextColor="#22a060"/>
+                            <Label Text="collected" FontSize="11" TextColor="#7b8db8"/>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Collection Rate -->
+                    <Frame Grid.Row="1" Grid.Column="0"
+                           BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                           CornerRadius="12" Padding="16" HasShadow="False">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="COLLECTION" FontSize="9" TextColor="#7b8db8" CharacterSpacing="2"/>
+                            <Label x:Name="CollectionLabel" Text="0%"
+                                   FontSize="28" FontAttributes="Bold" TextColor="#e8edf8"/>
+                            <Label Text="rate" FontSize="11" TextColor="#7b8db8"/>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Officers on duty -->
+                    <Frame Grid.Row="1" Grid.Column="1"
+                           BackgroundColor="#131f3a" BorderColor="#2a3d6b"
+                           CornerRadius="12" Padding="16" HasShadow="False">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="ON DUTY" FontSize="9" TextColor="#7b8db8" CharacterSpacing="2"/>
+                            <Label x:Name="OnDutyLabel" Text="0"
+                                   FontSize="28" FontAttributes="Bold" TextColor="#e8edf8"/>
+                            <Label Text="officers" FontSize="11" TextColor="#7b8db8"/>
+                        </VerticalStackLayout>
+                    </Frame>
+                </Grid>
+
+                <!-- QUICK ACTIONS -->
+                <Label Text="QUICK ACTIONS" FontSize="10" TextColor="#7b8db8"
+                       CharacterSpacing="2" Margin="0,0,0,10"/>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,24">
+                    <Button Grid.Column="0"
+                            Text="📋  Issue Fine"
+                            BackgroundColor="#c0392b"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            FontSize="14"
+                            CornerRadius="10"
+                            HeightRequest="52"
+                            Clicked="OnIssueFineClicked"/>
+                    <Button Grid.Column="1"
+                            Text="🔍  Lookup Plate"
+                            BackgroundColor="#1a2744"
+                            TextColor="#e8edf8"
+                            FontSize="14"
+                            CornerRadius="10"
+                            HeightRequest="52"
+                            BorderColor="#2a3d6b"
+                            BorderWidth="1"
+                            Clicked="OnLookupClicked"/>
+                </Grid>
+
+                <!-- RECENT FINES -->
+                <Label Text="RECENT ISSUANCES" FontSize="10" TextColor="#7b8db8"
+                       CharacterSpacing="2" Margin="0,0,0,10"/>
+
+                <ActivityIndicator x:Name="LoadingIndicator"
+                                   IsRunning="True" IsVisible="True"
+                                   Color="#c8960c" Margin="0,20"/>
+
+                <CollectionView x:Name="RecentFinesView"
+                                IsVisible="False"
+                                EmptyView="No fines recorded yet.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame BackgroundColor="#131f3a" BorderColor="#1e2e52"
+                                   CornerRadius="10" Padding="14" HasShadow="False"
+                                   Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="3">
+                                        <Label Text="{Binding ReferenceNumber}"
+                                               FontSize="12" TextColor="#f0b429"
+                                               FontFamily="OpenSansRegular"/>
+                                        <Label Text="{Binding PlateNumber}"
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="#e8edf8"/>
+                                        <Label Text="{Binding OffenceCode.Name}"
+                                               FontSize="12" TextColor="#7b8db8"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4"
+                                                         HorizontalOptions="End">
+                                        <Label Text="{Binding FormattedAmount}"
+                                               FontSize="14" FontAttributes="Bold"
+                                               TextColor="{Binding StatusColour}"
+                                               HorizontalOptions="End"/>
+                                        <Label Text="{Binding Status}"
+                                               FontSize="10" TextColor="#7b8db8"
+                                               HorizontalOptions="End"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>
