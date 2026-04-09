@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NexusFine.Admin/NexusFine.Admin.csproj" />
+    <Project Path="src/NexusFine.API/NexusFine.API.csproj" />
+    <Project Path="src/NexusFine.Core/NexusFine.Core.csproj" />
+    <Project Path="src/NexusFine.Infrastructure/NexusFine.Infrastructure.csproj" />
+    <Project Path="src/NexusFine.Mobile/NexusFine.Mobile.csproj" />
+  </Folder>
+</Solution>

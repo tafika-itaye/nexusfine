@@ -1,0 +1,6 @@
+@NexusFine.API_HostAddress = http://localhost:5121
+
+GET {{NexusFine.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
