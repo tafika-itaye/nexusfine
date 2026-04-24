@@ -31,6 +31,14 @@ public static class ServiceRegistration
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 
+        services.AddHttpClient("WhatsApp", client =>
+        {
+            client.BaseAddress = new Uri(
+                config["WhatsApp:BaseUrl"] ?? "https://graph.facebook.com/v20.0/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         services.AddHttpClient("SmsGateway", client =>
         {
             client.BaseAddress = new Uri(
@@ -43,8 +51,15 @@ public static class ServiceRegistration
         services.AddScoped<MpambaService>();
         services.AddScoped<PaymentGatewayFactory>();
 
-        // ── SMS ───────────────────────────────────────────────
-        services.AddScoped<SmsService>();
+        // ── NOTIFICATIONS ─────────────────────────────────────
+        // WhatsApp is the primary channel for the DRTSS pilot. SMS and Email
+        // are retained as OPTIONAL features — any tenant can enable them in
+        // config to reach citizens on additional channels. The CompositeNotificationService
+        // fans out to all enabled channels with isolated failure handling.
+        services.AddScoped<WhatsAppNotificationService>();
+        services.AddScoped<SmsNotificationService>();
+        services.AddScoped<EmailNotificationService>();
+        services.AddScoped<INotificationService, CompositeNotificationService>();
 
         return services;
     }
