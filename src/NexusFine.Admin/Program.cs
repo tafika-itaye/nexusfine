@@ -16,7 +16,10 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+    .AddCookie(options =>
+{
+    options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
+});
 
 // DelegatingHandler that injects "Authorization: Bearer …" into every API call.
 builder.Services.AddTransient<JwtBearerHandler>();
