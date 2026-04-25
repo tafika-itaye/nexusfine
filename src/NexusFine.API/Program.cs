@@ -121,12 +121,24 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("NexusFinePolicy");
 
+// Serve the citizen portal (and any other static SPA assets) from wwwroot.
+// Module 2 ships /wwwroot/citizen/ — the bilingual public payment portal.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseNexusFineAuditLog();
 
 app.MapControllers();
+
+// Convenience root → citizen portal (Module 2).
+app.MapGet("/", ctx =>
+{
+    ctx.Response.Redirect("/citizen/");
+    return Task.CompletedTask;
+});
 
 // ── AUTO-MIGRATE + SEED ON STARTUP (dev only) ────────────────
 if (app.Environment.IsDevelopment())

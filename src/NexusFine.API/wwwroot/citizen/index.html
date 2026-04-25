@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusFine — Malawi Traffic Fines Portal</title>
+<meta name="description" content="Official MPS digital portal for paying traffic fines in Malawi. Look up by plate, reference, or driver ID. Pay via mobile money, bank, card, USSD, or WhatsApp.">
+<link rel="stylesheet" href="/css/theme.css">
+<style>
+/* ── CITIZEN PORTAL SPECIFIC ── */
+body { background: var(--off-white); color: var(--text-on-light); }
+
+.main-nav {
+  background: var(--navy); box-shadow: var(--shadow);
+  position: sticky; top: 0; z-index: 200;
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 5%;
+  display: flex; align-items: center; justify-content: space-between; height: 64px;
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.brand-eagle {
+  width: 42px; height: 42px; background: var(--navy-mid);
+  border: 2px solid var(--gold); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.brand-text .name { font-size: 17px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }
+.brand-text .name span { color: var(--gold-bright); }
+.brand-text .sub  { font-size: 10px; color: var(--text-muted-d); letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-link  { color: var(--text-muted-d); font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: var(--radius); transition: all 0.15s; }
+.nav-link:hover { color: var(--text-on-dark); background: var(--navy-mid); }
+.nav-link.active { color: var(--gold-bright); }
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+.lang-toggle {
+  background: var(--navy-mid); border: 1px solid var(--border-dark);
+  color: var(--text-muted-d); font-size: 12px; font-weight: 600;
+  padding: 6px 12px; border-radius: var(--radius); transition: all 0.15s;
+}
+.lang-toggle:hover { color: var(--gold-bright); border-color: var(--gold); }
+.lang-toggle.active-lang { color: var(--gold-bright); border-color: var(--gold); }
+
+.hero {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+  padding: 64px 5% 56px; border-bottom: 3px solid var(--gold); position: relative; overflow: hidden;
+}
+.hero-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; position: relative;
+}
+.hero-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold-bright); margin-bottom: 18px;
+}
+.hero-eyebrow::before { content: ''; display: block; width: 20px; height: 2px; background: var(--gold); }
+.hero h1 {
+  font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 800; line-height: 1.1;
+  color: var(--text-on-dark); letter-spacing: -0.02em; margin-bottom: 18px;
+}
+.hero h1 em { font-style: normal; color: var(--gold-bright); }
+.hero-desc { font-size: 15px; color: var(--text-muted-d); font-weight: 400; max-width: 460px; margin-bottom: 36px; line-height: 1.7; }
+.hero-stats { display: flex; gap: 28px; flex-wrap: wrap; }
+.stat-block { border-left: 3px solid var(--gold); padding-left: 14px; }
+.stat-block .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text-on-dark); }
+.stat-block .lbl { font-size: 11px; color: var(--text-muted-d); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.lookup-card {
+  background: var(--white); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg); overflow: hidden; border: 1px solid var(--border-light);
+}
+.lookup-card-top { background: var(--navy); padding: 20px 24px 16px; border-bottom: 3px solid var(--gold); }
+.lookup-card-top h2 { font-size: 16px; font-weight: 700; color: var(--text-on-dark); }
+.lookup-card-top p  { font-size: 12px; color: var(--text-muted-d); margin-top: 3px; }
+.lookup-card-body   { padding: 24px; }
+
+.tab-row {
+  display: flex; gap: 3px; background: var(--light-grey);
+  padding: 4px; border-radius: var(--radius); margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1; background: none; border: none;
+  color: var(--text-muted-l); font-size: 12px; font-weight: 600;
+  padding: 8px 4px; border-radius: 6px; transition: all 0.15s;
+}
+.tab-btn.active { background: var(--navy); color: var(--gold-bright); box-shadow: var(--shadow-sm); }
+.tab-btn:hover:not(.active) { color: var(--navy); }
+
+.lookup-card .form-input { background: var(--white); border: 1.5px solid var(--border-light); color: var(--text-on-light); }
+.lookup-card .form-input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(26,39,68,0.1); }
+.lookup-card .form-input::placeholder { color: var(--mid-grey); }
+.lookup-card .form-label { color: var(--text-muted-l); }
+
+.btn-search {
+  width: 100%; background: var(--navy); color: white;
+  border: none; border-radius: var(--radius); padding: 13px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+  margin-top: 4px; transition: background 0.18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-search:hover { background: var(--navy-light); }
+.btn-search:disabled { opacity: 0.6; cursor: wait; }
+
+.result-panel { margin-top: 20px; border-top: 1px solid var(--border-light); padding-top: 20px; display: none; }
+.fine-result {
+  background: var(--off-white); border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.fine-result-header {
+  background: var(--navy-dark); padding: 16px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fine-ref-mono { font-family: var(--font-mono); font-size: 12px; color: var(--gold-bright); letter-spacing: 0.1em; }
+.fine-plate-text { font-size: 11px; color: var(--text-muted-d); margin-top: 2px; }
+.fine-result-body { padding: 16px 18px; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.detail-item .k { font-size: 10px; color: var(--text-muted-l); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+.detail-item .v { font-size: 13px; font-weight: 600; color: var(--text-on-light); }
+.detail-item.full { grid-column: 1 / -1; }
+
+.fine-timeline {
+  display: flex; align-items: center; margin: 14px 0; padding: 14px 16px;
+  background: var(--white); border: 1px solid var(--border-light);
+  border-radius: var(--radius); gap: 0; overflow-x: auto;
+}
+.timeline-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; min-width: 70px; }
+.timeline-step::after {
+  content: ''; position: absolute; top: 12px; left: 50%; right: -50%; height: 2px;
+  background: var(--border-light); z-index: 0;
+}
+.timeline-step:last-child::after { display: none; }
+.timeline-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--border-light); background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; z-index: 1; position: relative; transition: all 0.2s;
+}
+.timeline-step.done .timeline-dot   { background: var(--success-text); border-color: var(--success-text); color: white; }
+.timeline-step.active .timeline-dot { background: var(--gold); border-color: var(--gold); color: var(--navy-dark); }
+.timeline-step.done::after          { background: var(--success-text); }
+.timeline-label { font-size: 10px; color: var(--text-muted-l); text-align: center; font-weight: 600; letter-spacing: 0.04em; }
+.timeline-step.done   .timeline-label { color: var(--success-text); }
+.timeline-step.active .timeline-label { color: var(--gold); }
+
+.fine-amount-box {
+  background: var(--navy-dark); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fine-amount-box .lbl { font-size: 11px; color: var(--text-muted-d); }
+.fine-amount-box .amount { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+.fine-amount-box .amount.unpaid { color: var(--red-bright); }
+.fine-amount-box .amount.paid   { color: var(--success-text); }
+.fine-amount-box .due-note      { font-size: 11px; color: var(--warning-text); text-align: right; max-width: 50%; }
+
+.pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.pay-option {
+  background: var(--white); border: 1.5px solid var(--border-light);
+  border-radius: var(--radius); padding: 9px 10px;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; color: var(--text-on-light); transition: all 0.15s;
+}
+.pay-option:hover { border-color: var(--navy); background: var(--off-white); color: var(--navy); box-shadow: var(--shadow-sm); }
+.pay-option .ico  { font-size: 16px; }
+
+.section { max-width: 1200px; margin: 0 auto; padding: 64px 5%; }
+.section-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--navy); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.section-eyebrow::before { content: ''; display: block; width: 16px; height: 2px; background: var(--gold); }
+.section h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem); font-weight: 800;
+  color: var(--text-on-light); letter-spacing: -0.02em; margin-bottom: 40px;
+}
+
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.steps-grid::before {
+  content: ''; position: absolute; top: 32px; left: 10%; right: 10%; height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--navy)); z-index: 0;
+}
+.step-card {
+  background: var(--white); border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); padding: 28px 22px; margin: 0 8px;
+  position: relative; z-index: 1; transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.step-card:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+.step-num-badge {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--navy); color: var(--gold-bright);
+  font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px; box-shadow: 0 0 0 4px var(--white), 0 0 0 6px var(--gold);
+}
+.step-card h3 { font-size: 14px; font-weight: 700; color: var(--text-on-light); margin-bottom: 8px; }
+.step-card p  { font-size: 12px; color: var(--text-muted-l); line-height: 1.6; }
+
+.channels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.channel-card {
+  background: var(--white); border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg); padding: 24px 20px;
+  transition: all 0.18s; box-shadow: var(--shadow-sm);
+}
+.channel-card:hover { border-color: var(--navy); box-shadow: var(--shadow); transform: translateY(-2px); }
+.channel-icon-wrap {
+  width: 48px; height: 48px; border-radius: var(--radius);
+  background: var(--navy); display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 14px;
+}
+.channel-card h3 { font-size: 14px; font-weight: 700; color: var(--text-on-light); margin-bottom: 5px; }
+.channel-card p  { font-size: 12px; color: var(--text-muted-l); line-height: 1.5; }
+.channel-tag {
+  display: inline-block; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  padding: 3px 8px; border-radius: 3px; letter-spacing: 0.08em;
+  background: var(--light-grey); color: var(--navy); border: 1px solid var(--border-light);
+}
+
+.faq-list { display: flex; flex-direction: column; gap: 2px; }
+.faq-item { background: var(--white); border: 1px solid var(--border-light); border-radius: var(--radius); overflow: hidden; }
+.faq-q {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 18px; background: none; border: none; text-align: left;
+  font-size: 14px; font-weight: 600; color: var(--text-on-light);
+  cursor: pointer; transition: background 0.15s;
+}
+.faq-q:hover { background: var(--off-white); }
+.faq-q .chevron { color: var(--navy); font-size: 12px; transition: transform 0.2s; }
+.faq-q.open .chevron { transform: rotate(180deg); }
+.faq-a { display: none; padding: 0 18px 16px; font-size: 13px; color: var(--text-muted-l); line-height: 1.7; border-top: 1px solid var(--border-light); padding-top: 14px; }
+.faq-a.open { display: block; }
+
+.notice-bar {
+  background: var(--navy-dark); border-bottom: 1px solid var(--border-dark);
+  padding: 10px 5%; display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--text-muted-d);
+}
+.notice-bar .notice-icon { color: var(--gold-bright); font-size: 14px; }
+.notice-bar strong { color: var(--gold-bright); }
+
+footer { background: var(--navy-dark); border-top: 3px solid var(--gold); padding: 40px 5% 28px; }
+.footer-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 28px;
+}
+.footer-brand .name { font-size: 16px; font-weight: 800; color: var(--text-on-dark); margin-bottom: 8px; }
+.footer-brand .name span { color: var(--gold-bright); }
+.footer-brand p { font-size: 12px; color: var(--text-muted-d); line-height: 1.7; max-width: 280px; }
+.footer-col h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted-d); margin-bottom: 14px; }
+.footer-col a  { display: block; color: var(--text-muted-d); font-size: 13px; margin-bottom: 8px; transition: color 0.15s; }
+.footer-col a:hover { color: var(--gold-bright); }
+.footer-bottom {
+  max-width: 1200px; margin: 0 auto;
+  padding-top: 20px; border-top: 1px solid var(--border-dark);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--text-muted-d);
+}
+
+/* PAY MODAL */
+.pay-modal-title { font-size: 18px; font-weight: 700; color: var(--text-on-dark); margin-bottom: 4px; }
+.pay-modal-sub   { font-size: 13px; color: var(--text-muted-d); margin-bottom: 22px; }
+.pay-amount-row  {
+  background: var(--surface-0); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pay-amount-row .lbl { font-size: 11px; color: var(--text-muted-d); }
+.pay-amount-row .val { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--red-bright); }
+.phone-row { display: block; }
+.success-state { text-align: center; padding: 20px 0; }
+.success-icon-big { font-size: 52px; margin-bottom: 14px; }
+.success-state h3 { font-size: 20px; font-weight: 700; color: var(--text-on-dark); margin-bottom: 8px; }
+.success-state p  { font-size: 13px; color: var(--text-muted-d); margin-bottom: 22px; }
+.receipt-ref { font-family: var(--font-mono); color: var(--gold-bright); font-size: 13px; }
+
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .steps-grid::before { display: none; }
+  .channels-grid { grid-template-columns: 1fr 1fr; }
+  .footer-inner  { grid-template-columns: 1fr; gap: 24px; }
+}
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .steps-grid, .channels-grid, .detail-grid, .pay-grid { grid-template-columns: 1fr; }
+  .hero-stats { gap: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- GOVERNMENT TOP BAR -->
+<div class="gov-topbar">
+  <div class="gov-left">
+    <div class="gov-flag"><span class="f1"></span><span class="f2"></span><span class="f3"></span></div>
+    <span class="gov-name" data-i18n="gov.republic">REPUBLIC OF MALAWI</span>
+    <span class="gov-sep">·</span>
+    <span data-i18n="gov.mps">Malawi Police Service — Road Safety &amp; Traffic Department</span>
+  </div>
+  <div class="gov-right">
+    <a href="#" data-i18n="gov.portal">Official Portal</a>
+    <a href="https://police.gov.mw" data-i18n="gov.site">police.gov.mw</a>
+    <a href="tel:997" data-i18n="gov.emergency">Emergency: 997</a>
+  </div>
+</div>
+
+<!-- NOTICE BAR -->
+<div class="notice-bar">
+  <span class="notice-icon">ℹ</span>
+  <span><strong data-i18n="notice.title">System Notice:</strong> <span data-i18n="notice.body">NexusFine is the only official portal for paying traffic fines.</span></span>
+</div>
+
+<!-- MAIN NAV -->
+<nav class="main-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="brand-eagle">🦅</div>
+      <div class="brand-text">
+        <div class="name">NEXUS<span>FINE</span></div>
+        <div class="sub">MPS Digital Enforcement</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="#lookup"   class="nav-link active" data-i18n="nav.lookup">Fine Lookup</a>
+      <a href="#how"      class="nav-link"        data-i18n="nav.how">How It Works</a>
+      <a href="#channels" class="nav-link"        data-i18n="nav.channels">Pay Options</a>
+      <a href="#faq"      class="nav-link"        data-i18n="nav.faq">Help / FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <button class="lang-toggle active-lang" onclick="setLang('en', this)">EN</button>
+      <button class="lang-toggle"             onclick="setLang('ny', this)">NY</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow" data-i18n="hero.eyebrow">Official MPS Digital Service</div>
+      <h1>
+        <span data-i18n="hero.h1.line1">Traffic Fines.</span><br>
+        <em data-i18n="hero.h1.line2">Paid Online.</em><br>
+        <span data-i18n="hero.h1.line3">No Queues.</span>
+      </h1>
+      <p class="hero-desc" data-i18n="hero.desc">Look up any traffic fine by plate, reference, or driver ID.</p>
+      <div class="hero-stats">
+        <div class="stat-block"><div class="num" data-i18n="hero.stat1.num">24/7</div><div class="lbl" data-i18n="hero.stat1.lbl">Payment Access</div></div>
+        <div class="stat-block"><div class="num" data-i18n="hero.stat2.num">6</div><div class="lbl" data-i18n="hero.stat2.lbl">Pay Channels</div></div>
+        <div class="stat-block"><div class="num" data-i18n="hero.stat3.num">EN / NY</div><div class="lbl" data-i18n="hero.stat3.lbl">Bilingual</div></div>
+        <div class="stat-block"><div class="num" data-i18n="hero.stat4.num">5 Min</div><div class="lbl" data-i18n="hero.stat4.lbl">Avg. Pay Time</div></div>
+      </div>
+    </div>
+
+    <!-- LOOKUP CARD -->
+    <div class="lookup-card" id="lookup">
+      <div class="lookup-card-top">
+        <h2 data-i18n="lookup.title">🔍 Find Your Fine</h2>
+        <p  data-i18n="lookup.sub">Enter your vehicle plate, fine reference, or driver ID</p>
+      </div>
+      <div class="lookup-card-body">
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="switchTab('plate',this)" data-i18n="lookup.tab.plate">By Plate</button>
+          <button class="tab-btn"        onclick="switchTab('ref',this)"   data-i18n="lookup.tab.ref">By Reference</button>
+          <button class="tab-btn"        onclick="switchTab('id',this)"    data-i18n="lookup.tab.id">By Driver ID</button>
+        </div>
+        <div id="tab-plate">
+          <div class="form-group">
+            <label class="form-label form-label-light" data-i18n="lookup.lbl.plate">Vehicle Registration Plate</label>
+            <input type="text" class="form-input" id="plate-input" data-i18n-placeholder="lookup.ph.plate" placeholder="e.g. MWK 1234 A" maxlength="12">
+          </div>
+        </div>
+        <div id="tab-ref" style="display:none">
+          <div class="form-group">
+            <label class="form-label form-label-light" data-i18n="lookup.lbl.ref">Fine Reference Number</label>
+            <input type="text" class="form-input" id="ref-input" data-i18n-placeholder="lookup.ph.ref" placeholder="e.g. NXF-2026-00001" maxlength="20">
+          </div>
+        </div>
+        <div id="tab-id" style="display:none">
+          <div class="form-group">
+            <label class="form-label form-label-light" data-i18n="lookup.lbl.id">National ID / Driver's Licence No.</label>
+            <input type="text" class="form-input" id="id-input" data-i18n-placeholder="lookup.ph.id" placeholder="e.g. 9911-22-330044-55" maxlength="22">
+          </div>
+        </div>
+        <button class="btn-search" id="btn-search" onclick="lookupFine()">🔍 <span data-i18n="lookup.btn">Search Fines</span></button>
+
+        <div class="result-panel" id="result-panel"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="section-eyebrow" data-i18n="how.eyebrow">Simple Process</div>
+  <h2 data-i18n="how.heading">How NexusFine Works</h2>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num-badge">01</div>
+      <h3 data-i18n="how.s1.title">Look Up</h3>
+      <p  data-i18n="how.s1.body">Enter your plate, fine reference, or driver ID.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num-badge">02</div>
+      <h3 data-i18n="how.s2.title">Review</h3>
+      <p  data-i18n="how.s2.body">Confirm the offence, amount, and due date.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num-badge">03</div>
+      <h3 data-i18n="how.s3.title">Pay</h3>
+      <p  data-i18n="how.s3.body">Choose mobile money, bank, card, or USSD.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num-badge">04</div>
+      <h3 data-i18n="how.s4.title">Receipt</h3>
+      <p  data-i18n="how.s4.body">Get your PDF receipt instantly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CHANNELS -->
+<section class="section" id="channels" style="background: var(--white); max-width: none; padding: 64px 5%;">
+  <div style="max-width:1200px; margin:0 auto;">
+    <div class="section-eyebrow" data-i18n="ch.eyebrow">Pay Anywhere</div>
+    <h2 data-i18n="ch.heading">Available Payment Channels</h2>
+    <div class="channels-grid">
+      <div class="channel-card"><div class="channel-icon-wrap">📱</div><h3 data-i18n="ch.airtel.title">Airtel Money</h3><p data-i18n="ch.airtel.body">Pay via Airtel Money STK push.</p><span class="channel-tag" data-i18n="ch.airtel.tag">INSTANT</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap">📲</div><h3 data-i18n="ch.mpamba.title">TNM Mpamba</h3><p data-i18n="ch.mpamba.body">Pay from TNM Mpamba wallet.</p><span class="channel-tag" data-i18n="ch.mpamba.tag">INSTANT</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap">🏦</div><h3 data-i18n="ch.bank.title">Bank Transfer</h3><p data-i18n="ch.bank.body">Transfer to MPS Treasury account.</p><span class="channel-tag" data-i18n="ch.bank.tag">1–2 BUSINESS DAYS</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap">💳</div><h3 data-i18n="ch.card.title">Debit / Credit Card</h3><p data-i18n="ch.card.body">Visa or Mastercard, 3D Secure.</p><span class="channel-tag" data-i18n="ch.card.tag">INSTANT</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap">📞</div><h3 data-i18n="ch.ussd.title">USSD *777#</h3><p data-i18n="ch.ussd.body">No internet? Dial *777#.</p><span class="channel-tag" data-i18n="ch.ussd.tag">NO INTERNET</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap">💬</div><h3 data-i18n="ch.whatsapp.title">WhatsApp</h3><p data-i18n="ch.whatsapp.body">Message +265 999 NEXUS.</p><span class="channel-tag" data-i18n="ch.whatsapp.tag">CHAT-BASED</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="section-eyebrow" data-i18n="faq.eyebrow">Common Questions</div>
+  <h2 data-i18n="faq.heading">Frequently Asked</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q1">Is NexusFine the only legitimate portal?</span><span class="chevron">▼</span></button>
+      <div class="faq-a" data-i18n="faq.a1">Yes. NexusFine is the only authorised portal.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q2">What if I disagree with my fine?</span><span class="chevron">▼</span></button>
+      <div class="faq-a" data-i18n="faq.a2">Submit a dispute and a senior officer will review.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q3">Do I get a paper receipt?</span><span class="chevron">▼</span></button>
+      <div class="faq-a" data-i18n="faq.a3">Your PDF receipt is the legally valid official record.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q4">What if I don't pay?</span><span class="chevron">▼</span></button>
+      <div class="faq-a" data-i18n="faq.a4">10% penalty after 30 days; court referral after 60.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="name">NEXUS<span>FINE</span></div>
+      <p data-i18n="footer.about">Official MPS digital fines portal, built by TechNexus MW.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.col.service">Service</h4>
+      <a href="#lookup"   data-i18n="nav.lookup">Fine Lookup</a>
+      <a href="#how"      data-i18n="nav.how">How It Works</a>
+      <a href="#channels" data-i18n="nav.channels">Pay Options</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.col.help">Help</h4>
+      <a href="#faq" data-i18n="nav.faq">Help / FAQ</a>
+      <a href="tel:997" data-i18n="gov.emergency">Emergency: 997</a>
+      <a href="https://police.gov.mw" data-i18n="gov.site">police.gov.mw</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span data-i18n="footer.copyright">© 2026 Malawi Police Service. All rights reserved.</span>
+    <span data-i18n="footer.poweredby">Powered by TechNexus MW</span>
+  </div>
+</footer>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePay()">×</button>
+    <div class="modal-inner">
+      <div id="pay-form-state">
+        <div class="pay-modal-title" id="pay-modal-title" data-i18n="pay.title">Confirm Payment</div>
+        <div class="pay-modal-sub"   id="pay-sub">—</div>
+
+        <div class="pay-amount-row">
+          <div>
+            <div class="lbl" data-i18n="pay.amount.lbl">AMOUNT TO PAY</div>
+            <div style="font-size:11px;color:var(--text-muted-d);margin-top:2px;">Ref: <span id="pay-fine-ref" class="receipt-ref"></span></div>
+          </div>
+          <div class="val" id="pay-amount">MK 0</div>
+        </div>
+
+        <div class="form-group" id="phone-row">
+          <label class="form-label" data-i18n="pay.phone.lbl">MOBILE MONEY NUMBER</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" class="country-code" value="+265" readonly>
+            <input type="text" class="form-input" id="phone-input" style="flex:1;" data-i18n-placeholder="pay.phone.ph" placeholder="991234567" maxlength="9">
+          </div>
+        </div>
+
+        <div id="pay-error" style="color: var(--red-bright); font-size: 12px; margin-bottom: 10px;"></div>
+
+        <button class="btn btn-gold btn-block btn-lg" id="pay-confirm-btn" data-i18n="pay.btn.confirm">Confirm Payment</button>
+      </div>
+
+      <div id="pay-success-state" class="success-state" style="display:none">
+        <div class="success-icon-big">✅</div>
+        <h3 id="success-title" data-i18n="pay.success.title">Payment Successful</h3>
+        <p>
+          <span id="success-body" data-i18n="pay.success.body">Your fine has been settled. Receipt no.</span>
+          <span id="success-receipt" class="receipt-ref"></span>
+        </p>
+        <button class="btn btn-gold btn-block" onclick="downloadReceipt()" id="success-download" data-i18n="pay.success.btn">Download Receipt (PDF)</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closePay()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- jsPDF for receipt generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/citizen/i18n.js"></script>
+<script src="/citizen/app.js"></script>
+</body>
+</html>
