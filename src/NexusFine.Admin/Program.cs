@@ -1,26 +1,41 @@
-using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.Authorization;
 using NexusFine.Admin.Components;
+using NexusFine.Admin.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── SERVICES ──────────────────────────────────────────────────
+// ── BLAZOR SERVER ────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// ── HTTP CLIENT ───────────────────────────────────────────────
+// ── AUTH (JWT held in circuit memory) ────────────────────────
+builder.Services.AddScoped<JwtAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<JwtAuthStateProvider>());
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
+
+// DelegatingHandler that injects "Authorization: Bearer …" into every API call.
+builder.Services.AddTransient<JwtBearerHandler>();
+
+// ── HTTP CLIENT (talks to the NexusFine API) ────────────────
 builder.Services.AddHttpClient("NexusFineAPI", client =>
-{
-    client.BaseAddress = new Uri(
-        builder.Configuration["ApiSettings:BaseUrl"]
-        ?? "http://localhost:5121"
-    );
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+    {
+        client.BaseAddress = new Uri(
+            builder.Configuration["ApiSettings:BaseUrl"]
+            ?? "http://localhost:5121"
+        );
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    })
+    .AddHttpMessageHandler<JwtBearerHandler>();
 
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("NexusFineAPI"));
 
-// ── APP ───────────────────────────────────────────────────────
+// ── APP ──────────────────────────────────────────────────────
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -30,6 +45,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
