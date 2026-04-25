@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using NexusFine.Admin.Components;
 using NexusFine.Admin.Services;
 
@@ -14,6 +15,10 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorizationCore();
+
+// Required by ASP.NET Core middleware even though Blazor handles auth internally
+builder.Services.AddAuthentication("NoOp")
+    .AddScheme<AuthenticationSchemeOptions, NoOpAuthHandler>("NoOp", _ => { });
 
 // DelegatingHandler that injects "Authorization: Bearer …" into every API call.
 builder.Services.AddTransient<JwtBearerHandler>();
@@ -42,6 +47,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
