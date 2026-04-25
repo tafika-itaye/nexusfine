@@ -58,7 +58,7 @@
 ## Module Plan (7 days)
 0. ✅ Foundations: code-check, stack lock, remove SMS, decision log, fix quotation (v0.0)
 1. ✅ API backend: entities, controllers, JWT+RBAC, audit log, simulated gateway, seed, OpenAPI, xUnit tests (v0.1)
-2. Citizen web portal: live, bilingual EN/NY, PDF receipt
+2. ✅ Citizen web portal: live API, bilingual EN/NY, jsPDF receipt (v0.2)
 3. Admin Blazor portal: login, KPIs, officer perf, fines, audit
 4. MAUI officer app: login, NFC, photo, offence capture, offline→sync
 5. WhatsApp + USSD: webhook endpoints + menu state + demo chat UI
@@ -78,6 +78,16 @@
 - Packages added (API): `Swashbuckle.AspNetCore 7.2.0`
 - EF migration: `Module1AddAppUsers` (scripted, run by module1.ps1/.sh)
 - Scripts: `scripts/module1.ps1` and `scripts/module1.sh`; doctor now checks .NET 10
+
+## Module 2 — delivered (2026-04-25)
+- API now serves static SPA assets (`UseDefaultFiles` + `UseStaticFiles`); root `/` → `/citizen/`
+- Citizen portal moved to `src/NexusFine.API/wwwroot/citizen/` (single-origin: no CORS)
+- `index.html` — full layout (gov topbar, notice, hero, lookup card with 3 tabs, how-it-works, channels, FAQ, footer, pay modal); every UI string tagged `data-i18n`
+- `i18n.js` — complete EN + Chichewa (NY) dictionary; `setLang()` re-applies + re-renders open fine in target language
+- `app.js` — calls live API: `lookup → initiate → confirm` (simulated gateway path); generates branded PDF receipt via jsPDF (CDN); also supports re-downloading receipt for already-paid fines
+- Channels mapped to backend enum: AirtelMoney / TnmMpamba / BankTransfer / Card / Ussd / WhatsApp
+- Scripts: `scripts/module2.ps1` and `scripts/module2.sh` — verify files → build → boot API on :5080 → smoke-test `/citizen/`, assets, `/api/offencecodes`, `/api/fines/lookup` → re-run tests → commit + tag v0.2
+- Verified live: lookup `NXF-2026-00001` returns "Demo Driver 1, Unroadworthy Vehicle, Toyota Hilux, MK 60,000" → simulated pay flow flips status to PAID; NY language correctly translates timeline + amount labels
 - Auth gating:
   - Dashboard — Supervisor, Admin
   - Fines — [Authorize]; lookup AllowAnonymous; POST Officer/Supervisor/Admin
