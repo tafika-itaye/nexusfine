@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using NexusFine.Admin.Components;
 using NexusFine.Admin.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,11 +14,6 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorizationCore();
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-{
-    options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
-});
 
 // DelegatingHandler that injects "Authorization: Bearer …" into every API call.
 builder.Services.AddTransient<JwtBearerHandler>();
@@ -48,7 +42,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
