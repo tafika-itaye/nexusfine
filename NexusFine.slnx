@@ -6,4 +6,7 @@
     <Project Path="src/NexusFine.Infrastructure/NexusFine.Infrastructure.csproj" />
     <Project Path="src/NexusFine.Mobile/NexusFine.Mobile.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NexusFine.Tests/NexusFine.Tests.csproj" />
+  </Folder>
 </Solution>

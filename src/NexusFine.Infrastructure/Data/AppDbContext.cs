@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Appeal> Appeals => Set<Appeal>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -150,6 +151,25 @@ public class AppDbContext : DbContext
             e.Property(a => a.Action).HasMaxLength(50).IsRequired();
             e.Property(a => a.UserId).HasMaxLength(100);
             e.Property(a => a.IpAddress).HasMaxLength(45);
+        });
+
+        // ── APP USER ──
+        mb.Entity<AppUser>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => u.UserName).IsUnique();
+            e.HasIndex(u => u.Email);
+            e.Property(u => u.UserName).HasMaxLength(50).IsRequired();
+            e.Property(u => u.Email).HasMaxLength(120).IsRequired();
+            e.Property(u => u.FullName).HasMaxLength(120).IsRequired();
+            e.Property(u => u.PasswordHash).HasMaxLength(255).IsRequired();
+            e.Property(u => u.PasswordSalt).HasMaxLength(255).IsRequired();
+            e.Property(u => u.Roles).HasMaxLength(120).IsRequired();
+
+            e.HasOne(u => u.Officer)
+             .WithMany()
+             .HasForeignKey(u => u.OfficerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ── SEED DATA ──

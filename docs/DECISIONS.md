@@ -129,3 +129,84 @@ cost pass-through.
 **Decision.** Each module ships as one squashed commit to `main`:
 `feat(moduleN): <title>`. No long-lived feature branches. Tags cut at
 `v0.N` after each module completes its verification step.
+
+---
+
+## 2026-04-24 · D-008 — Auth stack: custom AppUser + JWT (no ASP.NET Identity)
+
+**Context.** Module 1 needs login, RBAC, and password verification for the
+admin portal, officer app, and API. Full ASP.NET Identity adds ~12 tables and
+framework coupling we do not need for the MPS/DRTSS scope.
+
+**Decision.**
+- Custom `AppUser` entity with: `UserName`, `Email`, `FullName`,
+  `PasswordHash`, `PasswordSalt`, `Roles` (comma-separated), optional
+  `OfficerId` link, `IsActive`, `LastLoginAt`.
+- `PasswordHasher`: PBKDF2-SHA256, 210,000 iterations, 16-byte salt, 32-byte
+  hash. Constant-time verification.
+- `JwtTokenService`: HS256, configurable issuer/audience/secret, access token
+  expiry 120 min, refresh token 14 days. Refresh token storage added in
+  Module 3 when the admin portal lands.
+- Roles: `Admin`, `Supervisor`, `Officer` (constants in `AppRoles`).
+- Default seeded accounts for demo:
+  - `admin / Nexus@Admin2026` (Admin)
+  - `supervisor / Nexus@Super2026` (Supervisor + Admin)
+- Controllers gate by role:
+  - `DashboardController` — Supervisor, Admin
+  - `FinesController` — `[Authorize]`, POST limited to Officer/Supervisor/Admin;
+    lookup is `AllowAnonymous` (citizen portal)
+  - `OfficersController` — `[Authorize]`
+  - `PaymentsController` — `AllowAnonymous` (citizen + gateway callbacks)
+  - `OffenceCodesController.GetAll` — `AllowAnonymous`
+
+**Consequence.** No Identity dependency, small schema delta, same security
+posture. If the ministry ever requires SCIM / Azure AD B2C, swap the JWT
+issuer for an OIDC scheme; `[Authorize(Roles=...)]` attributes remain valid.
+
+**Rotate before production.** `Jwt:Secret` in `appsettings.json` is a
+DEV-ONLY value. Production deployments must override via user-secrets,
+Azure Key Vault, or environment variable.
+
+---
+
+## 2026-04-24 · D-009 — Audit log strategy: request-level middleware
+
+**Context.** Pilot requires "who did what when" for every mutating admin /
+officer action.
+
+**Decision.** `AuditLogMiddleware` writes an `AuditLog` row after every
+POST/PUT/PATCH/DELETE to `/api/*`. It records:
+
+- `EntityType` derived from the path (`/api/fines/...` → `fines`)
+- `EntityId` from the path if numeric
+- `Action` = HTTP method
+- `NewValues` = JSON snapshot of method, path, query, response status
+- `UserId` from JWT subject claim
+- `IpAddress` from remote endpoint
+- `Timestamp`
+
+`GET` requests are not audited; we rely on application logs for reads.
+Per-entity before/after diffs are added in Module 3 for the admin fine-edit
+screens using EF Core change tracker events.
+
+---
+
+## 2026-04-24 · D-010 — Simulated gateway as a first-class implementation
+
+**Context.** D-004 locked payments to simulated for the Minister demo. The
+first implementation lived inside `AirtelMoneyService` / `MpambaService`
+behind a `REPLACE_` placeholder check, which muddles real + fake code paths.
+
+**Decision.** Introduce `SimulatedPaymentGateway : IPaymentGateway` as a
+dedicated implementation. `PaymentGatewayFactory` now reads
+`ApiSettings:PaymentMode`:
+- `Simulated` → always returns `SimulatedPaymentGateway` regardless of channel
+- `Live`     → routes by `PaymentChannel` to the real services
+
+`SimulatedPaymentGateway` is deterministic, logs every call, and parses the
+minimal JSON payload emitted by the citizen portal's "confirm" flow. It ships
+with xUnit coverage.
+
+**Consequence.** Flip `PaymentMode` to `Live` on the server post-contract —
+no code change. Real and simulated paths can also coexist if we ever want to
+A/B test with a subset of users.

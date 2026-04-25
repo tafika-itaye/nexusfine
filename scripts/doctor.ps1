@@ -7,17 +7,17 @@ Write-Step "NexusFine Doctor — $root"
 
 $missing = @()
 
-# .NET 8
+# .NET 10 (project targets net10.0 with packages 10.0.5)
 if (Test-Command dotnet) {
-    $sdks = & dotnet --list-sdks
-    $has8 = $sdks | Where-Object { $_ -match '^8\.' }
-    if ($has8) { Write-OK ".NET 8 SDK: $($has8 | Select-Object -First 1)" }
+    $sdks  = & dotnet --list-sdks
+    $has10 = $sdks | Where-Object { $_ -match '^10\.' }
+    if ($has10) { Write-OK ".NET 10 SDK: $($has10 | Select-Object -First 1)" }
     else {
-        Write-Warn2 ".NET installed but no 8.x SDK found. Output:`n$sdks"
-        $missing += '.NET 8 SDK — https://dotnet.microsoft.com/download/dotnet/8.0 (winget install Microsoft.DotNet.SDK.8)'
+        Write-Warn2 ".NET installed but no 10.x SDK found. Output:`n$sdks"
+        $missing += '.NET 10 SDK — https://dotnet.microsoft.com/download/dotnet/10.0 (winget install Microsoft.DotNet.SDK.10)'
     }
 } else {
-    $missing += '.NET SDK 8 — https://dotnet.microsoft.com/download/dotnet/8.0 (winget install Microsoft.DotNet.SDK.8)'
+    $missing += '.NET SDK 10 — https://dotnet.microsoft.com/download/dotnet/10.0 (winget install Microsoft.DotNet.SDK.10)'
 }
 
 # MAUI workload

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NexusFine.Core.Entities;
@@ -7,6 +8,7 @@ namespace NexusFine.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class FinesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -14,6 +16,8 @@ public class FinesController : ControllerBase
     public FinesController(AppDbContext db) => _db = db;
 
     // GET api/fines/lookup?type=plate&value=MWK1234A
+    // Public — citizen portal uses this to look up their own fine.
+    [AllowAnonymous]
     [HttpGet("lookup")]
     public async Task<IActionResult> Lookup([FromQuery] string type, [FromQuery] string value)
     {
@@ -114,6 +118,7 @@ public class FinesController : ControllerBase
     }
 
     // POST api/fines  (officer issues a fine)
+    [Authorize(Roles = "Officer,Supervisor,Admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFineRequest req)
     {

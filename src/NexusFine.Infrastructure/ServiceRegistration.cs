@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NexusFine.Infrastructure.Auth;
 using NexusFine.Infrastructure.Services;
 
 namespace NexusFine.Infrastructure;
@@ -14,6 +15,11 @@ public static class ServiceRegistration
         this IServiceCollection services,
         IConfiguration config)
     {
+        // ── AUTH ──────────────────────────────────────────────
+        services.Configure<JwtSettings>(config.GetSection("Jwt"));
+        services.AddSingleton<JwtTokenService>();
+        services.AddSingleton<PasswordHasher>();
+
         // ── HTTP CLIENTS ──────────────────────────────────────
         services.AddHttpClient("AirtelMoney", client =>
         {
@@ -49,6 +55,7 @@ public static class ServiceRegistration
         // ── PAYMENT GATEWAYS ──────────────────────────────────
         services.AddScoped<AirtelMoneyService>();
         services.AddScoped<MpambaService>();
+        services.AddScoped<SimulatedPaymentGateway>();
         services.AddScoped<PaymentGatewayFactory>();
 
         // ── NOTIFICATIONS ─────────────────────────────────────

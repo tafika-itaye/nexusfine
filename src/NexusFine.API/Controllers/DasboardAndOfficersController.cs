@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NexusFine.Core.Entities;
@@ -8,6 +9,7 @@ namespace NexusFine.API.Controllers;
 // ── DASHBOARD ─────────────────────────────────────────────────
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Supervisor,Admin")]
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -157,6 +159,7 @@ public class DashboardController : ControllerBase
 // ── OFFICERS ──────────────────────────────────────────────────
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class OfficersController : ControllerBase
 {
     private readonly AppDbContext _db;

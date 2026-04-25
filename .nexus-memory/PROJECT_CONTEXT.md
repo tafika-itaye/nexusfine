@@ -56,14 +56,34 @@
 - Payments for demo: **simulated** (deterministic fake gateway). Real Airtel/Mpamba wired post-contract.
 
 ## Module Plan (7 days)
-0. Foundations: code-check, stack lock, remove SMS, decision log, fix quotation
-1. API backend: entities, controllers, JWT+RBAC, audit log, simulated gateway, seed, OpenAPI
+0. ✅ Foundations: code-check, stack lock, remove SMS, decision log, fix quotation (v0.0)
+1. ✅ API backend: entities, controllers, JWT+RBAC, audit log, simulated gateway, seed, OpenAPI, xUnit tests (v0.1)
 2. Citizen web portal: live, bilingual EN/NY, PDF receipt
 3. Admin Blazor portal: login, KPIs, officer perf, fines, audit
 4. MAUI officer app: login, NFC, photo, offence capture, offline→sync
 5. WhatsApp + USSD: webhook endpoints + menu state + demo chat UI
 6. Deploy scripts: PowerShell + bash, EF migrate, seed, publish
 7. Polish: E2E tests, demo runbook, backup offline demo
+
+## Module 1 — delivered (2026-04-24)
+- Custom `AppUser` + `PasswordHasher` (PBKDF2-SHA256, 210k iter) + `JwtTokenService` (HS256, 120min access, 14d refresh)
+- `AuthController`: /login (anon), /register (Admin only), /me
+- `SimulatedPaymentGateway` as first-class `IPaymentGateway`; factory routes by `ApiSettings:PaymentMode`
+- `AuditLogMiddleware` records every mutating /api request
+- Default seeded accounts: `admin / Nexus@Admin2026`, `supervisor / Nexus@Super2026`
+- Demo seed: 4 officers (one per zone) + 8 sample fines spanning Paid / Unpaid / Overdue
+- Swagger with Bearer scheme on /swagger
+- xUnit test project `tests/NexusFine.Tests` — PasswordHasher, JwtTokenService, SimulatedPaymentGateway, Fine lifecycle
+- Packages added (Infrastructure): `Microsoft.IdentityModel.Tokens 8.2.1`, `System.IdentityModel.Tokens.Jwt 8.2.1`, `Microsoft.Extensions.Options.ConfigurationExtensions 10.0.5`
+- Packages added (API): `Swashbuckle.AspNetCore 7.2.0`
+- EF migration: `Module1AddAppUsers` (scripted, run by module1.ps1/.sh)
+- Scripts: `scripts/module1.ps1` and `scripts/module1.sh`; doctor now checks .NET 10
+- Auth gating:
+  - Dashboard — Supervisor, Admin
+  - Fines — [Authorize]; lookup AllowAnonymous; POST Officer/Supervisor/Admin
+  - Officers — [Authorize]
+  - Payments — AllowAnonymous (citizen + gateway callbacks)
+  - OffenceCodes.GetAll — AllowAnonymous
 
 ## Separate follow-up
 - Clone + rewrite ra.org.mw (Road Authority site) — after NexusFine ships.

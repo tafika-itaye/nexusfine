@@ -10,16 +10,16 @@ missing=()
 
 if have dotnet; then
     sdks="$(dotnet --list-sdks 2>/dev/null)"
-    if echo "$sdks" | grep -q '^8\.'; then
-        ok ".NET 8 SDK: $(echo "$sdks" | grep '^8\.' | head -1)"
+    if echo "$sdks" | grep -q '^10\.'; then
+        ok ".NET 10 SDK: $(echo "$sdks" | grep '^10\.' | head -1)"
     else
-        warn2 ".NET installed but no 8.x SDK"
-        missing+=(".NET 8 SDK — winget install Microsoft.DotNet.SDK.8")
+        warn2 ".NET installed but no 10.x SDK"
+        missing+=(".NET 10 SDK — winget install Microsoft.DotNet.SDK.10")
     fi
     if dotnet workload list 2>/dev/null | grep -qiE 'maui|android'; then ok "MAUI workload installed"; else missing+=("MAUI workload — dotnet workload install maui-android"); fi
     if dotnet tool list -g 2>/dev/null | grep -q dotnet-ef; then ok "dotnet-ef (global)"; else missing+=("dotnet-ef tool — dotnet tool install -g dotnet-ef"); fi
 else
-    missing+=(".NET 8 SDK — winget install Microsoft.DotNet.SDK.8")
+    missing+=(".NET 10 SDK — winget install Microsoft.DotNet.SDK.10")
 fi
 
 if have sqllocaldb || have sqlcmd; then ok "SQL Server tooling present"; else missing+=("SQL Server Express / LocalDB — winget install Microsoft.SQLServer.2022.Express"); fi

@@ -2,8 +2,8 @@
 
 | # | Module | Owner | Ships | Tag |
 |---|--------|-------|-------|-----|
-| 0 | Foundations: code-check, SMS removal, decision log, scripts | arch | Day 1 | v0.0 |
-| 1 | API backend: entities, JWT+RBAC, audit, simulated gateway, seed, OpenAPI | be | Day 1–2 | v0.1 |
+| 0 | ✅ Foundations: code-check, SMS removal, decision log, scripts | arch | Day 1 | v0.0 |
+| 1 | ✅ API backend: entities, JWT+RBAC, audit, simulated gateway, seed, OpenAPI | be | Day 1–2 | v0.1 |
 | 2 | Citizen web portal: live, bilingual EN/NY, PDF receipt | fe | Day 2–3 | v0.2 |
 | 3 | Admin Blazor portal: login, KPIs, officers, fines, audit | fe | Day 3–4 | v0.3 |
 | 4 | MAUI officer app: login, NFC, photo, offence capture, offline→sync | mob | Day 4–5 | v0.4 |

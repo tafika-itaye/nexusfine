@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NexusFine.Core.Entities;
@@ -8,6 +9,7 @@ namespace NexusFine.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous] // citizen-facing payment journey; gateway callbacks must reach us unauthenticated
 public class PaymentsController : ControllerBase
 {
     private readonly AppDbContext          _db;
