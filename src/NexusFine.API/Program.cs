@@ -9,7 +9,16 @@ using NexusFine.Infrastructure.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── CORE SERVICES ─────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(opt =>
+    {
+        // Serialise enums as strings (e.g. FineStatus.Paid -> "Paid")
+        // so strongly-typed Blazor DTOs and JSON consumers don't choke
+        // on numeric enum values.
+        opt.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger with Bearer scheme so ops can auth through the portal.

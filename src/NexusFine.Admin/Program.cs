@@ -20,22 +20,37 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddAuthentication("NoOp")
     .AddScheme<AuthenticationSchemeOptions, NoOpAuthHandler>("NoOp", _ => { });
 
-// DelegatingHandler that injects "Authorization: Bearer …" into every API call.
-builder.Services.AddTransient<JwtBearerHandler>();
-
 // ── HTTP CLIENT (talks to the NexusFine API) ────────────────
-builder.Services.AddHttpClient("NexusFineAPI", client =>
+// Note: we deliberately bypass IHttpClientFactory here. HttpClientFactory
+// builds the message-handler chain in its OWN internal DI scope (see
+// https://learn.microsoft.com/aspnet/core/fundamentals/http-requests
+// #message-handler-scopes-in-ihttpclientfactory) — that scope is NOT the
+// SignalR circuit's scope. The result is that JwtBearerHandler ends up
+// holding a JwtAuthStateProvider instance from a different scope, so the
+// token signed in on the circuit's provider is never seen and every API
+// call comes back 401.
+//
+// For this admin portal (one tenant, modest traffic) we trade
+// HttpClientFactory's connection pooling for correctness: we register the
+// HttpClient as Scoped and construct it directly with a circuit-scoped
+// JwtBearerHandler that reads from the *same* JwtAuthStateProvider the
+// Login page wrote to.
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var auth   = sp.GetRequiredService<JwtAuthStateProvider>();
+    var config = sp.GetRequiredService<IConfiguration>();
+    var handler = new JwtBearerHandler(auth)
     {
-        client.BaseAddress = new Uri(
-            builder.Configuration["ApiSettings:BaseUrl"]
-            ?? "http://localhost:5121"
-        );
-        client.DefaultRequestHeaders.Add("Accept", "application/json");
-    })
-    .AddHttpMessageHandler<JwtBearerHandler>();
-
-builder.Services.AddScoped(sp =>
-    sp.GetRequiredService<IHttpClientFactory>().CreateClient("NexusFineAPI"));
+        InnerHandler = new HttpClientHandler()
+    };
+    var client = new HttpClient(handler)
+    {
+        BaseAddress = new Uri(
+            config["ApiSettings:BaseUrl"] ?? "http://localhost:5121"),
+    };
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    return client;
+});
 
 // ── APP ──────────────────────────────────────────────────────
 var app = builder.Build();
