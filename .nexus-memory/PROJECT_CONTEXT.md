@@ -59,7 +59,7 @@
 0. ✅ Foundations: code-check, stack lock, remove SMS, decision log, fix quotation (v0.0)
 1. ✅ API backend: entities, controllers, JWT+RBAC, audit log, simulated gateway, seed, OpenAPI, xUnit tests (v0.1)
 2. ✅ Citizen web portal: live API, bilingual EN/NY, jsPDF receipt (v0.2)
-3. Admin Blazor portal: login, KPIs, officer perf, fines, audit
+3. ✅ Admin Blazor portal: JWT login, RBAC gating, audit log viewer (v0.3)
 4. MAUI officer app: login, NFC, photo, offence capture, offline→sync
 5. WhatsApp + USSD: webhook endpoints + menu state + demo chat UI
 6. Deploy scripts: PowerShell + bash, EF migrate, seed, publish
@@ -94,6 +94,23 @@
   - Officers — [Authorize]
   - Payments — AllowAnonymous (citizen + gateway callbacks)
   - OffenceCodes.GetAll — AllowAnonymous
+
+## Module 3 — delivered (2026-04-25)
+- Auth design (D-011): JWT held in **circuit memory only**; reload = back to login. Acceptable for demo. Post-demo TODO: ProtectedSessionStorage rehydration + `/api/auth/refresh` endpoint.
+- New API endpoint: `AuditLogsController` — `GET /api/auditlogs?entityType=&action=&entityId=&from=&to=&page=&pageSize=`, plus `/entitytypes` and `/actions` distinct lists. `[Authorize(Roles="Admin,Supervisor")]`.
+- Admin services:
+  - `JwtAuthStateProvider : AuthenticationStateProvider` — scoped per circuit; parses JWT with `JwtSecurityTokenHandler`; normalises `"role"` → `ClaimTypes.Role`; expiry-aware.
+  - `JwtBearerHandler : DelegatingHandler` — injects `Authorization: Bearer …` into every API call.
+- Admin pages:
+  - `Login.razor` — EditForm → POST `/api/auth/login` → `Auth.SignInAsync(token, exp)` → `/`. Hint shows admin / supervisor demo creds.
+  - `Logout.razor` — clears the principal.
+  - `AccessDenied.razor` — wrong-role landing.
+  - `AuditLog.razor` — paginated table + filters (entityType, action, entityId, date range) + JSON pretty-print viewer for OldValues / NewValues. Toggleable per row.
+- Routing: `Routes.razor` wraps `<AuthorizeRouteView>`; `<NotAuthorized>` redirects anonymous → `/login`, authenticated wrong-role → `/access-denied`.
+- All admin pages carry `@attribute [Authorize(Roles="Admin,Supervisor")]` (Home, Fines, Officers, Reconciliation, AuditLog).
+- `NavMenu.razor` user pill replaced with `<AuthorizeView>` rendering `fullName` + top role from JWT claims, with Sign-out link.
+- Packages: `Microsoft.AspNetCore.Components.Authorization 10.0.5`, `System.IdentityModel.Tokens.Jwt 8.2.1`.
+- Scripts: `scripts/module3.ps1` and `scripts/module3.sh` — boot API + Admin → smoke-test login → audit endpoint → verify anonymous 401 → re-run tests → commit + tag v0.3.
 
 ## Separate follow-up
 - Clone + rewrite ra.org.mw (Road Authority site) — after NexusFine ships.

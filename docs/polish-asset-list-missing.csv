@@ -1,0 +1,21 @@
+id,category,filename,target_folder,search_query,fallback_query,source_priority,format,min_dimensions,aspect,license_required,notes
+G01,government,mps-crest.png,wwwroot/img/gov,"Malawi Police Service crest logo","MPS Malawi badge official",official press-kit / police.gov.mw / wikimedia.org,png,512x512,1:1,public-domain or fair-use-government,"transparent background; high-res; CRITICAL — this is the institutional credibility mark"
+G02,government,drtss-logo.png,wwwroot/img/gov,"DRTSS Malawi logo Directorate Road Traffic Safety","Directorate Road Traffic Safety Services Malawi emblem","drtss.gov.mw, wikimedia.org",png,512x512,1:1,public-domain or fair-use-government,"if not findable use mps-crest.png as fallback in markup"
+G05,government,malawi-map-outline.svg,wwwroot/img/gov,"Malawi country outline svg map","Malawi map silhouette vector",wikimedia.org,svg,N/A,2:3,public-domain,"single-color outline; no labels; used as decorative motif"
+C07,channel,visa.svg,wwwroot/img/channels,"Visa logo svg blue","Visa card brand logo current",brandfetch.com (visa.com) / worldvectorlogo.com / commons.wikimedia.org,svg,N/A,N/A,brand-trademark-fair-use,"official blue version; PNG acceptable if SVG unavailable"
+C10,channel,ussd-icon.svg,wwwroot/img/channels,"USSD code phone icon svg","dial pad phone icon flat",flaticon.com / svgrepo.com / heroicons.com,svg,N/A,1:1,free-commercial-with-attribution,"abstract icon ok; doesn't need brand"
+A01,avatar,avatar-male-1.svg,wwwroot/img/officers,"male police officer avatar svg flat","African male officer illustration",dicebear.com (personas style) / svgrepo.com,svg,512x512,1:1,free-commercial,"professional uniform; navy/blue color scheme"
+A02,avatar,avatar-male-2.svg,wwwroot/img/officers,"male police officer avatar svg flat darker skin","African male officer illustration",dicebear.com (personas style),svg,512x512,1:1,free-commercial,
+A03,avatar,avatar-male-3.svg,wwwroot/img/officers,"male officer avatar svg older","senior police officer illustration",dicebear.com (personas style),svg,512x512,1:1,free-commercial,
+A04,avatar,avatar-female-1.svg,wwwroot/img/officers,"female police officer avatar svg","African female officer illustration",dicebear.com (personas style),svg,512x512,1:1,free-commercial,
+A05,avatar,avatar-female-2.svg,wwwroot/img/officers,"female officer avatar svg younger","female police uniform illustration",dicebear.com (personas style),svg,512x512,1:1,free-commercial,
+A06,avatar,avatar-default.svg,wwwroot/img/officers,"generic police silhouette avatar svg","police uniform silhouette icon",svgrepo.com / iconfinder.com (free),svg,512x512,1:1,free-commercial,"used when officer has no avatar"
+I01,icon,icon-fine-receipt.svg,wwwroot/img/icons,"receipt document icon svg flat","fine ticket icon flat",heroicons.com / lucide.dev,svg,N/A,1:1,mit-license,
+I02,icon,icon-vehicle.svg,wwwroot/img/icons,"car vehicle icon svg flat","sedan car icon line",heroicons.com / lucide.dev,svg,N/A,1:1,mit-license,
+I03,icon,icon-money-mk.svg,wwwroot/img/icons,"banknote money icon svg flat","cash kwacha icon",heroicons.com / lucide.dev,svg,N/A,1:1,mit-license,"can later add MK overlay"
+I04,icon,icon-shield-check.svg,wwwroot/img/icons,"shield check icon svg","shield verified flat icon",heroicons.com / lucide.dev,svg,N/A,1:1,mit-license,"used for paid status"
+I05,icon,icon-clock-warning.svg,wwwroot/img/icons,"clock warning overdue icon svg","alarm overdue red icon",heroicons.com / lucide.dev,svg,N/A,1:1,mit-license,"used for overdue status"
+M01,misc,pattern-bg-light.svg,wwwroot/img/misc,"subtle pattern background svg light gray","topography subtle pattern svg",heropatterns.com,svg,N/A,N/A,cc0,"used as section divider"
+M02,misc,pattern-bg-navy.svg,wwwroot/img/misc,"subtle pattern background svg dark navy","topography pattern dark navy",heropatterns.com,svg,N/A,N/A,cc0,"used in admin sidebar"
+M03,misc,placeholder-vehicle.jpg,wwwroot/img/misc,"car license plate close up","Toyota Hilux Malawi license plate","unsplash.com, pexels.com",jpg,1280x720,16:9,free-commercial,"used in fine-detail mockups"
+M04,misc,placeholder-document.jpg,wwwroot/img/misc,"signed government document on desk","official paperwork stamped","unsplash.com, pexels.com",jpg,1280x720,16:9,free-commercial,"used as preview thumbnail"

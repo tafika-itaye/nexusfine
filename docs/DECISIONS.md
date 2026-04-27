@@ -210,3 +210,45 @@ with xUnit coverage.
 **Consequence.** Flip `PaymentMode` to `Live` on the server post-contract —
 no code change. Real and simulated paths can also coexist if we ever want to
 A/B test with a subset of users.
+
+---
+
+## 2026-04-25 · D-011 — Admin portal auth: JWT held in Blazor circuit memory
+
+**Context.** Module 3 ships a Blazor Server admin portal that must authenticate
+against the existing API JWT endpoint. Two options were considered:
+
+1. **Circuit memory only.** JWT lives in the scoped `JwtAuthStateProvider`;
+   page reload kicks the user back to `/login`.
+2. **ProtectedSessionStorage rehydration.** JWT also persisted in encrypted
+   browser storage; reloads silently restore the principal in
+   `OnAfterRenderAsync`.
+
+**Decision.** Ship option 1 for the Minister demo. Option 2 is deferred.
+
+**Rationale.**
+- Demo flow does not exercise reloads — operators sign in once and stay.
+- Eliminates an entire class of bugs (storage-vs-circuit drift, double-init,
+  stale tokens surviving a server restart).
+- ProtectedSessionStorage rehydration adds prerender-render race conditions
+  that are awkward to debug under demo time pressure.
+- Refresh-token use is also deferred for the same reason; access token TTL
+  of 120 minutes is comfortably longer than any demo session.
+
+**Implementation.**
+- `JwtAuthStateProvider : AuthenticationStateProvider` — scoped per circuit,
+  parses the JWT with `JwtSecurityTokenHandler`, normalises legacy `"role"`
+  claims to `ClaimTypes.Role`, exposes `AccessToken` for the HTTP handler.
+- `JwtBearerHandler : DelegatingHandler` — injects `Authorization: Bearer …`
+  into every API call from the typed `HttpClient`.
+- `Routes.razor` wraps `<AuthorizeRouteView>`; `<NotAuthorized>` redirects
+  unauthenticated users to `/login` and authenticated-but-wrong-role users
+  to `/access-denied`.
+- All admin pages carry `@attribute [Authorize(Roles="Admin,Supervisor")]`.
+- `NavMenu.razor` user pill renders from JWT claims via `<AuthorizeView>`,
+  with a Sign-out link to `/logout`.
+
+**Post-demo follow-up.** Add a `ProtectedSessionStorage` rehydration step in
+`JwtAuthStateProvider.OnAfterRenderAsync` and wire the API's existing
+`refreshToken` field to a `/api/auth/refresh` endpoint. Tracked under the
+"Polish" module (Module 7).

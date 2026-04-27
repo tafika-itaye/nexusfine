@@ -11,7 +11,7 @@
             MPS · DRTSS
         </div>
         <div class="brand-row">
-            <div class="brand-eagle">🦅</div>
+            <div class="brand-eagle"><img src="img/gov/mps-crest.png" alt="MPS" /></div>
             <div>
                 <div class="brand-name">NEXUS<span>FINE</span></div>
                 <div class="brand-sub">Admin Portal</div>
@@ -61,12 +61,44 @@
     </NavLink>
 
     <div class="sidebar-footer">
-        <div class="user-row">
-            <div class="user-av">SK</div>
-            <div>
-                <div class="user-name">Supt. S. Kachali</div>
-                <div class="user-role">Senior Supervisor</div>
-            </div>
-        </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="user-row">
+                    <div class="user-av">@Initials(GetFullName(context))</div>
+                    <div style="flex:1;min-width:0">
+                        <div class="user-name" title="@GetFullName(context)">@GetFullName(context)</div>
+                        <div class="user-role">@GetTopRole(context)</div>
+                    </div>
+                </div>
+                <a href="logout" class="btn btn-sm btn-ghost btn-block" style="margin-top:10px">⎋ Sign out</a>
+            </Authorized>
+            <NotAuthorized>
+                <a href="login" class="btn btn-sm btn-primary btn-block">Sign in</a>
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
 </nav>
+
+@code {
+    private static string GetFullName(Microsoft.AspNetCore.Components.Authorization.AuthenticationState ctx)
+    {
+        var u = ctx.User;
+        return u.FindFirst("fullName")?.Value
+            ?? u.Identity?.Name
+            ?? "User";
+    }
+
+    private static string GetTopRole(Microsoft.AspNetCore.Components.Authorization.AuthenticationState ctx)
+    {
+        var role = ctx.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        return string.IsNullOrEmpty(role) ? "Member" : role;
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0]).ToUpperInvariant();
+    }
+}

@@ -1,5 +1,6 @@
 @* ── OFFICERS PAGE ── *@
 @page "/officers"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
 @rendermode InteractiveServer
 @inject HttpClient Http
 
@@ -69,8 +70,13 @@
                         <tr>
                             <td class="mono" style="color:var(--text-muted-d)">@((i+1).ToString("D2"))</td>
                             <td>
-                                <div style="font-weight:600">@o.FullName</div>
-                                <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber · @o.Rank</div>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <img src="@AvatarFor(o)" alt="" style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);object-fit:cover;flex-shrink:0" />
+                                    <div>
+                                        <div style="font-weight:600">@o.FullName</div>
+                                        <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber · @o.Rank</div>
+                                    </div>
+                                </div>
                             </td>
                             <td style="font-size:12px;color:var(--text-muted-d)">@o.Zone</td>
                             <td><span class="pill pill-@o.Status.ToLower()">@o.Status</span></td>
@@ -116,6 +122,24 @@
         }
         catch (Exception ex) { _error = ex.Message; }
         finally { _loading = false; }
+    }
+
+    private static readonly string[] _avatars = new[]
+    {
+        "img/officers/avatar-male-1.svg",
+        "img/officers/avatar-male-2.svg",
+        "img/officers/avatar-male-3.svg",
+        "img/officers/avatar-female-1.svg",
+        "img/officers/avatar-female-2.svg"
+    };
+
+    private static string AvatarFor(OfficerPerfDto o)
+    {
+        if (string.IsNullOrEmpty(o.BadgeNumber)) return "img/officers/avatar-default.svg";
+        var hash = 0;
+        foreach (var c in o.BadgeNumber) hash = unchecked(hash * 31 + c);
+        var idx = Math.Abs(hash) % _avatars.Length;
+        return _avatars[idx];
     }
 
     record OfficerPerfDto(

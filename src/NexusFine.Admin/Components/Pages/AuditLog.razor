@@ -1,0 +1,257 @@
+@page "/auditlog"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Audit Log — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Reports</div>
+    <h1 class="page-title">Audit Log</h1>
+    <p class="page-sub">Immutable record of every change made in the system.</p>
+</div>
+
+<!-- FILTERS -->
+<div class="panel mb-16">
+    <div class="panel-body" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="margin:0;min-width:160px">
+            <label class="form-label">Entity Type</label>
+            <select class="filter-select form-input" @bind="_filterEntityType">
+                <option value="">All</option>
+                @foreach (var t in _entityTypes)
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:160px">
+            <label class="form-label">Action</label>
+            <select class="filter-select form-input" @bind="_filterAction">
+                <option value="">All</option>
+                @foreach (var a in _actions)
+                {
+                    <option value="@a">@a</option>
+                }
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:120px">
+            <label class="form-label">Entity ID</label>
+            <input type="number" class="form-input" @bind="_filterEntityId" placeholder="e.g. 42" />
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">From</label>
+            <input type="date" class="form-input" @bind="_filterFrom">
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">To</label>
+            <input type="date" class="form-input" @bind="_filterTo">
+        </div>
+        <button class="btn btn-primary" @onclick="ApplyFilters">🔍 Apply</button>
+        <button class="btn btn-ghost" @onclick="ClearFilters">Clear</button>
+    </div>
+</div>
+
+<!-- TABLE -->
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">Audit Trail</div>
+            <div class="panel-sub">@(_total) total entries</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" @onclick="LoadLogs">↻ Refresh</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading...</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:140px">Timestamp</th>
+                        <th>Entity</th>
+                        <th>ID</th>
+                        <th>Action</th>
+                        <th>User</th>
+                        <th>IP</th>
+                        <th>Changes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_logs.Any())
+                    {
+                        <tr>
+                            <td colspan="7" style="text-align:center;color:var(--text-muted-d);padding:32px">
+                                No audit entries found.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var log in _logs)
+                    {
+                        <tr>
+                            <td style="font-size:11px;color:var(--text-muted-d);white-space:nowrap">
+                                @log.Timestamp.ToLocalTime().ToString("dd MMM yyyy HH:mm:ss")
+                            </td>
+                            <td><span class="pill pill-info">@log.EntityType</span></td>
+                            <td class="mono">@log.EntityId</td>
+                            <td><span class="pill pill-@ActionClass(log.Action)">@log.Action</span></td>
+                            <td style="font-size:12px">@(log.UserId ?? "—")</td>
+                            <td class="mono" style="font-size:11px;color:var(--text-muted-d)">@(log.IpAddress ?? "—")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(log.OldValues) || !string.IsNullOrEmpty(log.NewValues))
+                                {
+                                    <button class="btn btn-sm btn-ghost" @onclick="() => ToggleRow(log.Id)">
+                                        @(_expanded.Contains(log.Id) ? "Hide" : "View") JSON
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                        @if (_expanded.Contains(log.Id))
+                        {
+                            <tr>
+                                <td colspan="7" style="background:var(--bg-mid);padding:14px 18px">
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                                        <div>
+                                            <div class="section-eyebrow" style="margin-bottom:6px">Old Values</div>
+                                            <pre class="mono" style="background:var(--bg-dark);padding:10px;border-radius:6px;font-size:11px;max-height:280px;overflow:auto;color:var(--text-muted-d)">@PrettyJson(log.OldValues)</pre>
+                                        </div>
+                                        <div>
+                                            <div class="section-eyebrow" style="margin-bottom:6px">New Values</div>
+                                            <pre class="mono" style="background:var(--bg-dark);padding:10px;border-radius:6px;font-size:11px;max-height:280px;overflow:auto;color:var(--success-text)">@PrettyJson(log.NewValues)</pre>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-top:1px solid var(--border-mid)">
+            <span style="font-size:12px;color:var(--text-muted-d)">
+                Showing @(_total == 0 ? 0 : (_page-1)*_pageSize + 1)–@(Math.Min(_page*_pageSize, _total)) of @_total
+            </span>
+            <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-ghost" @onclick="PrevPage" disabled="@(_page==1)">← Prev</button>
+                <button class="btn btn-sm btn-ghost" @onclick="NextPage" disabled="@(_page*_pageSize>=_total)">Next →</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool    _loading = true;
+    private string? _error;
+    private List<AuditLogDto> _logs = new();
+    private List<string>      _entityTypes = new();
+    private List<string>      _actions     = new();
+    private HashSet<int>      _expanded    = new();
+
+    private int _total;
+    private int _page     = 1;
+    private int _pageSize = 50;
+
+    private string?   _filterEntityType;
+    private string?   _filterAction;
+    private int?      _filterEntityId;
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdowns();
+        await LoadLogs();
+    }
+
+    private async Task LoadDropdowns()
+    {
+        try
+        {
+            _entityTypes = await Http.GetFromJsonAsync<List<string>>("api/auditlogs/entitytypes") ?? new();
+            _actions     = await Http.GetFromJsonAsync<List<string>>("api/auditlogs/actions")     ?? new();
+        }
+        catch { /* non-fatal */ }
+    }
+
+    private async Task LoadLogs()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = $"api/auditlogs?page={_page}&pageSize={_pageSize}";
+            if (!string.IsNullOrWhiteSpace(_filterEntityType)) url += $"&entityType={Uri.EscapeDataString(_filterEntityType)}";
+            if (!string.IsNullOrWhiteSpace(_filterAction))     url += $"&action={Uri.EscapeDataString(_filterAction)}";
+            if (_filterEntityId.HasValue)                      url += $"&entityId={_filterEntityId}";
+            if (_filterFrom.HasValue) url += $"&from={_filterFrom:yyyy-MM-dd}";
+            if (_filterTo.HasValue)   url += $"&to={_filterTo:yyyy-MM-dd}";
+
+            var result = await Http.GetFromJsonAsync<AuditPagedResult>(url);
+            _logs  = result?.Data  ?? new();
+            _total = result?.Total ?? 0;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task ApplyFilters() { _page = 1; await LoadLogs(); }
+    private async Task PrevPage()     { if (_page > 1) { _page--; await LoadLogs(); } }
+    private async Task NextPage()     { _page++; await LoadLogs(); }
+    private async Task ClearFilters()
+    {
+        _filterEntityType = null; _filterAction = null; _filterEntityId = null;
+        _filterFrom = null; _filterTo = null;
+        _page = 1;
+        await LoadLogs();
+    }
+
+    private void ToggleRow(int id)
+    {
+        if (!_expanded.Add(id)) _expanded.Remove(id);
+    }
+
+    private static string ActionClass(string action) => action?.ToLowerInvariant() switch
+    {
+        "created"  or "create"  => "paid",
+        "updated"  or "update"  => "info",
+        "deleted"  or "delete"  => "overdue",
+        "paid"                  => "paid",
+        "cancelled" or "cancel" => "cancelled",
+        _                       => "info"
+    };
+
+    private static string PrettyJson(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "—";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(raw);
+            return System.Text.Json.JsonSerializer.Serialize(doc.RootElement,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch { return raw; }
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────
+    record AuditPagedResult(int Total, int Page, int PageSize, List<AuditLogDto> Data);
+
+    record AuditLogDto(
+        int      Id,
+        string   EntityType,
+        int      EntityId,
+        string   Action,
+        string?  OldValues,
+        string?  NewValues,
+        string?  UserId,
+        string?  IpAddress,
+        DateTime Timestamp
+    );
+}

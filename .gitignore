@@ -6,3 +6,8 @@ appsettings.Development.json
 *.db
 *.log
 .DS_Store
+
+# Node — only used for one-off bcrypt hashing utility, not project code
+node_modules/
+package.json
+package-lock.json

@@ -1,0 +1,206 @@
+@page "/login"
+@layout BlankLayout
+@rendermode InteractiveServer
+@using NexusFine.Admin.Services
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject JwtAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Sign in — NexusFine Admin</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-top">
+            <div class="login-flag">
+                <span class="f1"></span><span class="f2"></span><span class="f3"></span>
+            </div>
+            <div class="login-mark">
+                <div class="brand-eagle"><img src="img/gov/mps-crest.png" alt="MPS" /></div>
+                <div>
+                    <div class="brand-name">NEXUS<span>FINE</span></div>
+                    <div class="brand-sub">Admin Portal · Sign in</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="login-body">
+            <div class="login-eyebrow">Malawi Police Service · DRTSS</div>
+            <h1 class="login-title">Operations Sign-in</h1>
+            <p class="login-desc">
+                Use your assigned admin or supervisor credentials.
+                All actions you take are recorded in the audit log.
+            </p>
+
+            <EditForm Model="@_form" OnValidSubmit="@HandleSignIn" FormName="login-form">
+                <div class="form-group">
+                    <label class="form-label">USERNAME</label>
+                    <InputText class="form-input"
+                               @bind-Value="_form.UserName"
+                               autocomplete="username"
+                               placeholder="e.g. admin" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">PASSWORD</label>
+                    <InputText type="password" class="form-input"
+                               @bind-Value="_form.Password"
+                               autocomplete="current-password"
+                               placeholder="••••••••" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger" style="margin-bottom:12px">
+                        ⚠ @_error
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-gold btn-block btn-lg" disabled="@_busy">
+                    @(_busy ? "Signing in…" : "🔐 Sign In")
+                </button>
+            </EditForm>
+
+            <div class="login-hint">
+                Demo accounts:
+                <span class="mono">admin / Nexus@Admin2026</span> ·
+                <span class="mono">supervisor / Nexus@Super2026</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-shell {
+        min-height: 100vh;
+        display: flex; align-items: center; justify-content: center;
+        background:
+            linear-gradient(135deg, rgba(14,23,41,0.96) 0%, rgba(17,28,51,0.92) 60%, rgba(26,39,68,0.88) 100%),
+            url('img/gov/malawi-map-outline.svg') center/40% no-repeat,
+            var(--surface-0);
+        padding: 24px;
+        position: relative;
+    }
+    .login-shell::after {
+        content: ''; position: absolute; inset: 0;
+        background: url('img/misc/pattern-bg-navy.svg') repeat;
+        opacity: 0.12; pointer-events: none;
+    }
+    .login-card { position: relative; z-index: 1; }
+    .login-card {
+        width: 100%; max-width: 440px;
+        background: var(--surface-1);
+        border: 1px solid var(--border-dark);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+    .login-top {
+        background: var(--navy-dark);
+        padding: 22px 28px 18px;
+        border-bottom: 3px solid var(--gold);
+    }
+    .login-flag {
+        display: flex; gap: 3px; margin-bottom: 14px;
+    }
+    .login-flag span {
+        height: 5px; width: 28px; border-radius: 1px;
+    }
+    .login-flag .f1 { background: #000; }
+    .login-flag .f2 { background: #ce1126; }
+    .login-flag .f3 { background: #339e35; }
+    .login-mark {
+        display: flex; align-items: center; gap: 12px;
+    }
+    .login-mark .brand-eagle {
+        width: 48px; height: 48px;
+        background: var(--white);
+        border: 2px solid var(--gold);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; padding: 4px;
+    }
+    .login-mark .brand-eagle img { width: 100%; height: 100%; object-fit: contain; }
+    .login-mark .brand-name { font-size: 18px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }
+    .login-mark .brand-name span { color: var(--gold-bright); }
+    .login-mark .brand-sub  { font-size: 10px; color: var(--text-muted-d); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .login-body {
+        padding: 28px 32px 32px;
+    }
+    .login-eyebrow {
+        font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+        text-transform: uppercase; color: var(--gold-bright); margin-bottom: 8px;
+    }
+    .login-title {
+        font-size: 22px; font-weight: 800; color: var(--text-on-dark);
+        margin-bottom: 6px; letter-spacing: -0.01em;
+    }
+    .login-desc {
+        font-size: 12px; color: var(--text-muted-d); line-height: 1.6; margin-bottom: 22px;
+    }
+    .login-hint {
+        margin-top: 18px;
+        font-size: 11px;
+        color: var(--text-muted-d);
+        line-height: 1.6;
+    }
+</style>
+
+@code {
+    private LoginForm _form = new();
+    private string?   _error;
+    private bool      _busy;
+
+    private async Task HandleSignIn()
+    {
+        _busy  = true;
+        _error = null;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/auth/login", new
+            {
+                userName = _form.UserName,
+                password = _form.Password
+            });
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _error = problem?.message ?? $"Sign-in failed ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            var login = await resp.Content.ReadFromJsonAsync<LoginResponse>();
+            if (login is null || string.IsNullOrEmpty(login.AccessToken))
+            {
+                _error = "Login response was malformed.";
+                return;
+            }
+
+            await Auth.SignInAsync(login.AccessToken, login.AccessTokenExpiresAt);
+            Nav.NavigateTo("/", forceLoad: false);
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Could not reach the NexusFine API. Is it running?";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public class LoginForm
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    record LoginResponse(string AccessToken, DateTime AccessTokenExpiresAt, string RefreshToken, DateTime RefreshTokenExpiresAt);
+    record ErrorPayload(string? message);
+}

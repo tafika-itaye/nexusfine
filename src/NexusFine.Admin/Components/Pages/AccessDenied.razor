@@ -1,0 +1,20 @@
+@page "/access-denied"
+@layout BlankLayout
+@rendermode InteractiveServer
+
+<PageTitle>Access denied — NexusFine Admin</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-body" style="text-align:center; padding: 40px 32px;">
+            <div style="font-size:42px; margin-bottom:16px; color: var(--red-bright);">⛔</div>
+            <h1 class="login-title">Access denied</h1>
+            <p class="login-desc">
+                Your account does not have permission to view that page.
+                If you believe this is in error, contact the system administrator.
+            </p>
+            <a href="/" class="btn btn-secondary btn-block btn-lg">Return to dashboard</a>
+            <a href="/logout" class="btn btn-ghost btn-block" style="margin-top: 8px;">Sign out</a>
+        </div>
+    </div>
+</div>

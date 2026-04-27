@@ -1,0 +1,24 @@
+@page "/logout"
+@layout BlankLayout
+@rendermode InteractiveServer
+@using NexusFine.Admin.Services
+@inject JwtAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-body" style="text-align:center; padding: 40px 32px;">
+            <div style="font-size:42px; margin-bottom:16px;">👋</div>
+            <h1 class="login-title">Signed out</h1>
+            <p class="login-desc">You have been securely logged out.</p>
+            <a href="/login" class="btn btn-gold btn-block btn-lg">Sign in again</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.SignOutAsync();
+    }
+}

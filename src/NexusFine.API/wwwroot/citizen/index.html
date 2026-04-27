@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NexusFine — Malawi Traffic Fines Portal</title>
 <meta name="description" content="Official MPS digital portal for paying traffic fines in Malawi. Look up by plate, reference, or driver ID. Pay via mobile money, bank, card, USSD, or WhatsApp.">
+<link rel="icon" type="image/png" href="/img/gov/mps-crest.png">
+<link rel="apple-touch-icon" href="/img/gov/mps-crest.png">
 <link rel="stylesheet" href="/css/theme.css">
 <style>
 /* ── CITIZEN PORTAL SPECIFIC ── */
@@ -20,10 +22,12 @@ body { background: var(--off-white); color: var(--text-on-light); }
 }
 .nav-brand { display: flex; align-items: center; gap: 12px; }
 .brand-eagle {
-  width: 42px; height: 42px; background: var(--navy-mid);
+  width: 44px; height: 44px; background: var(--white);
   border: 2px solid var(--gold); border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; padding: 3px;
 }
+.brand-eagle img { width: 100%; height: 100%; object-fit: contain; }
 .brand-text .name { font-size: 17px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }
 .brand-text .name span { color: var(--gold-bright); }
 .brand-text .sub  { font-size: 10px; color: var(--text-muted-d); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -41,8 +45,15 @@ body { background: var(--off-white); color: var(--text-on-light); }
 .lang-toggle.active-lang { color: var(--gold-bright); border-color: var(--gold); }
 
 .hero {
-  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+  background:
+    linear-gradient(135deg, rgba(17,28,51,0.92) 0%, rgba(26,39,68,0.85) 60%, rgba(34,51,90,0.78) 100%),
+    url('/img/hero/hero-officer-checkpoint.jpg') center/cover no-repeat;
   padding: 64px 5% 56px; border-bottom: 3px solid var(--gold); position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('/img/misc/pattern-bg-navy.svg') repeat;
+  opacity: 0.18; pointer-events: none;
 }
 .hero-inner {
   max-width: 1200px; margin: 0 auto;
@@ -205,10 +216,12 @@ body { background: var(--off-white); color: var(--text-on-light); }
 }
 .channel-card:hover { border-color: var(--navy); box-shadow: var(--shadow); transform: translateY(-2px); }
 .channel-icon-wrap {
-  width: 48px; height: 48px; border-radius: var(--radius);
-  background: var(--navy); display: flex; align-items: center; justify-content: center;
-  font-size: 22px; margin-bottom: 14px;
+  width: 64px; height: 64px; border-radius: var(--radius);
+  background: var(--white); border: 1px solid var(--border-light);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; padding: 10px; overflow: hidden;
 }
+.channel-icon-wrap img { width: 100%; height: 100%; object-fit: contain; }
 .channel-card h3 { font-size: 14px; font-weight: 700; color: var(--text-on-light); margin-bottom: 5px; }
 .channel-card p  { font-size: 12px; color: var(--text-muted-l); line-height: 1.5; }
 .channel-tag {
@@ -294,7 +307,7 @@ footer { background: var(--navy-dark); border-top: 3px solid var(--gold); paddin
 <!-- GOVERNMENT TOP BAR -->
 <div class="gov-topbar">
   <div class="gov-left">
-    <div class="gov-flag"><span class="f1"></span><span class="f2"></span><span class="f3"></span></div>
+    <img src="/img/gov/malawi-coat-of-arms.svg" alt="Republic of Malawi" style="height:22px;width:auto;margin-right:8px;">
     <span class="gov-name" data-i18n="gov.republic">REPUBLIC OF MALAWI</span>
     <span class="gov-sep">·</span>
     <span data-i18n="gov.mps">Malawi Police Service — Road Safety &amp; Traffic Department</span>
@@ -316,7 +329,7 @@ footer { background: var(--navy-dark); border-top: 3px solid var(--gold); paddin
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-brand">
-      <div class="brand-eagle">🦅</div>
+      <div class="brand-eagle"><img src="/img/gov/mps-crest.png" alt="MPS"></div>
       <div class="brand-text">
         <div class="name">NEXUS<span>FINE</span></div>
         <div class="sub">MPS Digital Enforcement</div>
@@ -426,12 +439,28 @@ footer { background: var(--navy-dark); border-top: 3px solid var(--gold); paddin
     <div class="section-eyebrow" data-i18n="ch.eyebrow">Pay Anywhere</div>
     <h2 data-i18n="ch.heading">Available Payment Channels</h2>
     <div class="channels-grid">
-      <div class="channel-card"><div class="channel-icon-wrap">📱</div><h3 data-i18n="ch.airtel.title">Airtel Money</h3><p data-i18n="ch.airtel.body">Pay via Airtel Money STK push.</p><span class="channel-tag" data-i18n="ch.airtel.tag">INSTANT</span></div>
-      <div class="channel-card"><div class="channel-icon-wrap">📲</div><h3 data-i18n="ch.mpamba.title">TNM Mpamba</h3><p data-i18n="ch.mpamba.body">Pay from TNM Mpamba wallet.</p><span class="channel-tag" data-i18n="ch.mpamba.tag">INSTANT</span></div>
-      <div class="channel-card"><div class="channel-icon-wrap">🏦</div><h3 data-i18n="ch.bank.title">Bank Transfer</h3><p data-i18n="ch.bank.body">Transfer to MPS Treasury account.</p><span class="channel-tag" data-i18n="ch.bank.tag">1–2 BUSINESS DAYS</span></div>
-      <div class="channel-card"><div class="channel-icon-wrap">💳</div><h3 data-i18n="ch.card.title">Debit / Credit Card</h3><p data-i18n="ch.card.body">Visa or Mastercard, 3D Secure.</p><span class="channel-tag" data-i18n="ch.card.tag">INSTANT</span></div>
-      <div class="channel-card"><div class="channel-icon-wrap">📞</div><h3 data-i18n="ch.ussd.title">USSD *777#</h3><p data-i18n="ch.ussd.body">No internet? Dial *777#.</p><span class="channel-tag" data-i18n="ch.ussd.tag">NO INTERNET</span></div>
-      <div class="channel-card"><div class="channel-icon-wrap">💬</div><h3 data-i18n="ch.whatsapp.title">WhatsApp</h3><p data-i18n="ch.whatsapp.body">Message +265 999 NEXUS.</p><span class="channel-tag" data-i18n="ch.whatsapp.tag">CHAT-BASED</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap"><img src="/img/channels/airtel-money.png" alt="Airtel Money"></div><h3 data-i18n="ch.airtel.title">Airtel Money</h3><p data-i18n="ch.airtel.body">Pay via Airtel Money STK push.</p><span class="channel-tag" data-i18n="ch.airtel.tag">INSTANT</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap"><img src="/img/channels/tnm-mpamba.png" alt="TNM Mpamba"></div><h3 data-i18n="ch.mpamba.title">TNM Mpamba</h3><p data-i18n="ch.mpamba.body">Pay from TNM Mpamba wallet.</p><span class="channel-tag" data-i18n="ch.mpamba.tag">INSTANT</span></div>
+      <div class="channel-card">
+        <div class="channel-icon-wrap" style="background:var(--off-white);padding:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:100%;height:100%;">
+            <img src="/img/channels/standard-bank.jpg" alt="Standard Bank" style="object-fit:contain;width:100%;height:100%;">
+            <img src="/img/channels/nbm.jpg" alt="NBM" style="object-fit:contain;width:100%;height:100%;">
+            <img src="/img/channels/fdh-bank.png" alt="FDH" style="object-fit:contain;width:100%;height:100%;">
+            <img src="/img/channels/nbs-bank.png" alt="NBS" style="object-fit:contain;width:100%;height:100%;">
+          </div>
+        </div>
+        <h3 data-i18n="ch.bank.title">Bank Transfer</h3><p data-i18n="ch.bank.body">Transfer to MPS Treasury account.</p><span class="channel-tag" data-i18n="ch.bank.tag">1–2 BUSINESS DAYS</span>
+      </div>
+      <div class="channel-card">
+        <div class="channel-icon-wrap" style="display:flex;gap:6px;justify-content:center;align-items:center;">
+          <img src="/img/channels/visa.svg" alt="Visa" style="width:42%;height:auto;object-fit:contain;">
+          <img src="/img/channels/mastercard.svg" alt="Mastercard" style="width:42%;height:auto;object-fit:contain;">
+        </div>
+        <h3 data-i18n="ch.card.title">Debit / Credit Card</h3><p data-i18n="ch.card.body">Visa or Mastercard, 3D Secure.</p><span class="channel-tag" data-i18n="ch.card.tag">INSTANT</span>
+      </div>
+      <div class="channel-card"><div class="channel-icon-wrap"><img src="/img/channels/ussd-icon.png" alt="USSD"></div><h3 data-i18n="ch.ussd.title">USSD *777#</h3><p data-i18n="ch.ussd.body">No internet? Dial *777#.</p><span class="channel-tag" data-i18n="ch.ussd.tag">NO INTERNET</span></div>
+      <div class="channel-card"><div class="channel-icon-wrap"><img src="/img/channels/whatsapp.svg" alt="WhatsApp"></div><h3 data-i18n="ch.whatsapp.title">WhatsApp</h3><p data-i18n="ch.whatsapp.body">Message +265 999 NEXUS.</p><span class="channel-tag" data-i18n="ch.whatsapp.tag">CHAT-BASED</span></div>
     </div>
   </div>
 </section>
@@ -460,11 +489,41 @@ footer { background: var(--navy-dark); border-top: 3px solid var(--gold); paddin
   </div>
 </section>
 
+<!-- AUTHORITY STRIP -->
+<section style="background: var(--off-white); border-top: 1px solid var(--border-light); padding: 32px 5%;">
+  <div style="max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:48px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="/img/gov/mps-crest.png" alt="MPS" style="height:64px;width:auto;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.12em;text-transform:uppercase;">Authorised by</div>
+        <div style="font-size:14px;color:var(--text-on-light);font-weight:600;">Malawi Police Service</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="/img/gov/drtss-logo.png" alt="DRTSS" style="height:64px;width:auto;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.12em;text-transform:uppercase;">Operated by</div>
+        <div style="font-size:14px;color:var(--text-on-light);font-weight:600;">DRTSS · Road Safety &amp; Traffic</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="/img/gov/malawi-coat-of-arms.svg" alt="Malawi" style="height:64px;width:auto;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.12em;text-transform:uppercase;">An Initiative of the</div>
+        <div style="font-size:14px;color:var(--text-on-light);font-weight:600;">Government of Malawi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <div class="name">NEXUS<span>FINE</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <img src="/img/gov/mps-crest.png" alt="MPS" style="height:36px;width:auto;">
+        <div class="name" style="margin:0;">NEXUS<span>FINE</span></div>
+      </div>
       <p data-i18n="footer.about">Official MPS digital fines portal, built by TechNexus MW.</p>
     </div>
     <div class="footer-col">
