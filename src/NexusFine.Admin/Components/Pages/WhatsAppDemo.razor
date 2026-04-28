@@ -1,0 +1,235 @@
+@page "/whatsapp"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>WhatsApp Channel — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Citizen Channels</div>
+    <h1 class="page-title">WhatsApp</h1>
+</div>
+
+<div style="display:grid;grid-template-columns:minmax(360px,420px) 1fr;gap:24px;align-items:flex-start">
+
+    <!-- ── PHONE MOCKUP ── -->
+    <div class="phone-bezel">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+            <div class="wa-header">
+                <button class="wa-back" @onclick="Reset" title="Restart conversation">↺</button>
+                <div class="wa-avatar">
+                    <img src="img/gov/mps-crest.png" alt="" />
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div class="wa-title">NexusFine</div>
+                    <div class="wa-subtitle">DRTSS · official · @(_typing ? "typing…" : "online")</div>
+                </div>
+                <div class="wa-icons">📞 ⋮</div>
+            </div>
+
+            <div class="wa-body" id="wa-body" @ref="_bodyRef">
+                @foreach (var b in _bubbles)
+                {
+                    <div class="wa-row @(b.From == "user" ? "wa-row-out" : "wa-row-in")">
+                        <div class="wa-bubble @(b.From == "user" ? "wa-bubble-out" : "wa-bubble-in")">
+                            @((MarkupString)WaMarkdown(b.Text))
+                            <div class="wa-time">@b.At.ToLocalTime().ToString("HH:mm") @(b.From == "user" ? "✓✓" : "")</div>
+                        </div>
+                    </div>
+                }
+                @if (_typing)
+                {
+                    <div class="wa-row wa-row-in">
+                        <div class="wa-bubble wa-bubble-in" style="padding:10px 14px">
+                            <div class="wa-typing"><span></span><span></span><span></span></div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="wa-input">
+                @if (_quickReplies.Any())
+                {
+                    <div class="wa-quick">
+                        @foreach (var q in _quickReplies)
+                        {
+                            <button class="wa-chip" @onclick="() => SendQuick(q)">@q</button>
+                        }
+                    </div>
+                }
+                <div class="wa-compose">
+                    <span class="wa-emoji">😊</span>
+                    <input @bind="_input" @bind:event="oninput" @onkeydown="OnKeyDown"
+                           placeholder="Type a message…" />
+                    <button class="wa-send" @onclick="SendTyped" disabled="@string.IsNullOrWhiteSpace(_input)">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SIDE PANEL: SCRIPT + LIVE STATE ── -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel" style="padding:18px 20px">
+            <div class="section-eyebrow">Demo flow</div>
+            <div style="font-size:14px;color:var(--text-on-dark);font-weight:700;margin:6px 0 10px">Try this scenario</div>
+            <ol style="margin:0;padding-left:20px;color:var(--text-on-dark);font-size:13px;line-height:1.9">
+                <li>Tap <span class="kbd">1</span> — Look up by plate</li>
+                <li>Send <span class="kbd">MW-LL-1234</span> (or any plate from the citizen portal)</li>
+                <li>Pick a fine from the list</li>
+                <li>Tap <span class="kbd">1</span> — Airtel Money</li>
+                <li>Send a phone number — payment confirms</li>
+            </ol>
+            <div style="margin-top:12px;font-size:11px;color:var(--text-muted-d)">
+                Or click <strong>Run scripted demo</strong> to auto-play it.
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-sm btn-gold" @onclick="RunScript" disabled="@_scripting">
+                    @(_scripting ? "Running…" : "▶ Run scripted demo")
+                </button>
+                <button class="btn btn-sm btn-ghost" @onclick="Reset">↺ Reset</button>
+            </div>
+        </div>
+
+        <div class="panel" style="padding:18px 20px">
+            <div class="section-eyebrow">Conversation state</div>
+            <FieldRow Label="Session"  Value="@(_sessionId ?? "—")" Mono="true" />
+            <FieldRow Label="State"    Value="@(_state ?? "—")"  Mono="true" />
+            <FieldRow Label="Messages" Value="@_bubbles.Count.ToString()" Mono="true" />
+            <div style="margin-top:14px;font-size:11px;color:var(--text-muted-d);line-height:1.5">
+                <strong>Production wiring:</strong> the same state machine accepts inbound webhooks from
+                Meta WhatsApp Business API; this page is the operations preview.
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UiBubble> _bubbles = new();
+    private List<string>   _quickReplies = new();
+    private string         _input = "";
+    private string?        _sessionId;
+    private string?        _state;
+    private bool           _typing;
+    private bool           _scripting;
+    private ElementReference _bodyRef;
+
+    protected override async Task OnInitializedAsync() => await Reset();
+
+    private async Task Reset()
+    {
+        _bubbles.Clear();
+        _quickReplies.Clear();
+        _input = "";
+        _sessionId = null;
+        _state = null;
+        _typing = false;
+        StateHasChanged();
+        await StartSession();
+    }
+
+    private async Task StartSession()
+    {
+        _typing = true;
+        StateHasChanged();
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/chatbot/whatsapp/start", new { });
+            var turn = await resp.Content.ReadFromJsonAsync<ChatTurn>();
+            ApplyTurn(turn);
+        }
+        finally { _typing = false; StateHasChanged(); }
+        await ScrollBottom();
+    }
+
+    private async Task SendTyped()
+    {
+        if (string.IsNullOrWhiteSpace(_input)) return;
+        var text = _input.Trim();
+        _input = "";
+        await Send(text);
+    }
+
+    private async Task SendQuick(string q) => await Send(q);
+
+    private async Task Send(string text)
+    {
+        _bubbles.Add(new UiBubble("user", text, DateTime.UtcNow));
+        _quickReplies.Clear();
+        StateHasChanged();
+        await ScrollBottom();
+
+        _typing = true;
+        StateHasChanged();
+        await Task.Delay(420);  // small delay so the typing indicator lands
+
+        try
+        {
+            var resp = await Http.PostAsJsonAsync($"api/chatbot/whatsapp/message",
+                new { sessionId = _sessionId, text });
+            var turn = await resp.Content.ReadFromJsonAsync<ChatTurn>();
+            ApplyTurn(turn);
+        }
+        finally { _typing = false; StateHasChanged(); }
+        await ScrollBottom();
+    }
+
+    private void ApplyTurn(ChatTurn? t)
+    {
+        if (t is null) return;
+        _sessionId    = t.SessionId;
+        _state        = t.State;
+        _quickReplies = t.QuickReplies ?? new();
+        foreach (var r in t.Replies ?? new())
+            _bubbles.Add(new UiBubble(r.From, r.Text, DateTime.UtcNow));
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SendTyped();
+    }
+
+    private async Task RunScript()
+    {
+        _scripting = true;
+        StateHasChanged();
+        try
+        {
+            await Reset();
+            await Task.Delay(700);
+            await Send("1");                 // look up by plate
+            await Task.Delay(900);
+            await Send("MW-LL-1234");        // a sample plate
+            await Task.Delay(1200);
+            await Send("1");                 // pick first fine
+            await Task.Delay(900);
+            await Send("1");                 // Airtel Money
+            await Task.Delay(900);
+            await Send("0991234567");        // phone for charge
+        }
+        finally { _scripting = false; StateHasChanged(); }
+    }
+
+    private async Task ScrollBottom()
+    {
+        try { await JS.InvokeVoidAsync("eval", "var el=document.getElementById('wa-body');if(el)el.scrollTop=el.scrollHeight;"); }
+        catch { /* ignore JS errors during prerender */ }
+    }
+
+    // Tiny WhatsApp-style markdown: *bold*, _italic_, `mono`, line-breaks
+    private static string WaMarkdown(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "";
+        var s = System.Net.WebUtility.HtmlEncode(raw);
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\*([^*\n]+)\*", "<strong>$1</strong>");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"_([^_\n]+)_",   "<em>$1</em>");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"`([^`\n]+)`",   "<code>$1</code>");
+        s = s.Replace("\n", "<br/>");
+        return s;
+    }
+
+    record ChatTurn(string SessionId, string State, List<BotBubble> Replies, List<string> QuickReplies);
+    record BotBubble(string From, string Text);
+    record UiBubble(string From, string Text, DateTime At);
+}

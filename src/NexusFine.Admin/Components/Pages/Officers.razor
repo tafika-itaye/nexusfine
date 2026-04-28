@@ -21,7 +21,100 @@
         </button>
     }
     <button class="btn btn-sm btn-ghost" style="margin-left:auto" @onclick="LoadOfficers">↻ Refresh</button>
+    <AuthorizeView Roles="Admin">
+        <button class="btn btn-sm btn-gold" @onclick="OpenRegister">＋ Register Officer</button>
+    </AuthorizeView>
 </div>
+
+@if (_modalOpen)
+{
+    <div class="modal-shade" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-hdr">
+                <div>
+                    <div class="section-eyebrow">HQ-only</div>
+                    <div class="modal-title">Register Officer</div>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">✕</button>
+            </div>
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div class="alert alert-danger" style="margin:12px 18px">⚠ @_modalError</div>
+            }
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Badge number *</label>
+                        <input class="form-input mono" @bind="_form.BadgeNumber" placeholder="MPS-1042" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rank *</label>
+                        <select class="form-input filter-select" @bind="_form.Rank">
+                            <option value="">— Select —</option>
+                            <option>Constable</option>
+                            <option>Sergeant</option>
+                            <option>Sub-Inspector</option>
+                            <option>Inspector</option>
+                            <option>Superintendent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">First name *</label>
+                        <input class="form-input" @bind="_form.FirstName" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last name *</label>
+                        <input class="form-input" @bind="_form.LastName" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input class="form-input mono" @bind="_form.Phone" placeholder="+265 9..." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input class="form-input" @bind="_form.Email" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Department *</label>
+                        <select class="form-input filter-select" @bind="_form.DepartmentId" @bind:after="ResetStation">
+                            <option value="0">— Select —</option>
+                            @foreach (var d in _departments)
+                            {
+                                <option value="@d.Id">@d.Name (@d.Zone)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Station</label>
+                        <select class="form-input filter-select" @bind="_form.StationId">
+                            <option value="0">— None —</option>
+                            @foreach (var s in StationsForDept())
+                            {
+                                <option value="@s.Id">@s.Name (@s.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">NFC tag ID</label>
+                        <input class="form-input mono" @bind="_form.NfcTagId" placeholder="04:A2:..." />
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-on-dark);font-size:13px;margin-top:22px">
+                            <input type="checkbox" @bind="_form.IsActive" />
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-sm btn-gold" @onclick="Save" disabled="@_saving">
+                    @(_saving ? "Saving…" : "Register officer")
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 <div class="panel">
     <div class="panel-hdr">
@@ -107,9 +200,108 @@
     private List<OfficerPerfDto> _officers = new();
     private string _activeZone = "All";
 
-    protected override async Task OnInitializedAsync() => await LoadOfficers();
+    // ── registration modal state ──
+    private bool _modalOpen, _saving;
+    private string? _modalError;
+    private OfficerForm _form = new();
+    private List<DeptDto>     _departments = new();
+    private List<StationRef>  _allStations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOfficers();
+        await LoadRefData();
+    }
+
+    private async Task LoadRefData()
+    {
+        try
+        {
+            _departments = await Http.GetFromJsonAsync<List<DeptDto>>("api/departments") ?? new();
+            _allStations = await Http.GetFromJsonAsync<List<StationRef>>("api/stations?activeOnly=true") ?? new();
+        }
+        catch { /* registration just won't show ref data */ }
+    }
 
     private async Task SetZone(string zone) { _activeZone = zone; await LoadOfficers(); }
+
+    private void OpenRegister()
+    {
+        _form = new OfficerForm { IsActive = true };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _saving = false; }
+
+    private void ResetStation() { _form.StationId = 0; }
+
+    private IEnumerable<StationRef> StationsForDept() =>
+        _form.DepartmentId == 0 ? _allStations : _allStations.Where(s => s.DepartmentId == _form.DepartmentId);
+
+    private async Task Save()
+    {
+        _modalError = null;
+        if (string.IsNullOrWhiteSpace(_form.BadgeNumber) ||
+            string.IsNullOrWhiteSpace(_form.FirstName)   ||
+            string.IsNullOrWhiteSpace(_form.LastName)    ||
+            string.IsNullOrWhiteSpace(_form.Rank)        ||
+            _form.DepartmentId == 0)
+        {
+            _modalError = "Badge, name, rank and department are required.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                badgeNumber         = _form.BadgeNumber.Trim(),
+                firstName           = _form.FirstName.Trim(),
+                lastName            = _form.LastName.Trim(),
+                rank                = _form.Rank.Trim(),
+                phone               = _form.Phone?.Trim(),
+                email               = _form.Email?.Trim(),
+                nfcTagId            = _form.NfcTagId?.Trim(),
+                departmentId        = _form.DepartmentId,
+                stationId           = _form.StationId == 0 ? (int?)null : _form.StationId,
+                primaryPatrolPostId = (int?)null,
+                isActive            = _form.IsActive
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/officers", payload);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _modalError = problem?.message ?? $"Save failed ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            _modalOpen = false;
+            await LoadOfficers();
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    record DeptDto(int Id, string Name, string Zone);
+    record StationRef(int Id, string Code, string Name, int DepartmentId, string Zone);
+    record ErrorPayload(string? message);
+
+    class OfficerForm
+    {
+        public string  BadgeNumber  { get; set; } = "";
+        public string  FirstName    { get; set; } = "";
+        public string  LastName     { get; set; } = "";
+        public string  Rank         { get; set; } = "";
+        public string? Phone        { get; set; }
+        public string? Email        { get; set; }
+        public string? NfcTagId     { get; set; }
+        public int     DepartmentId { get; set; }
+        public int     StationId    { get; set; }
+        public bool    IsActive     { get; set; } = true;
+    }
 
     private async Task LoadOfficers()
     {
@@ -124,13 +316,15 @@
         finally { _loading = false; }
     }
 
+    // Pool restricted to the proper portrait SVGs the user uploaded.
+    // The legacy avatar-male-1..3 / avatar-female-1..2 SVGs are tiny placeholders
+    // that render as a landscape/crest icon, so they're excluded.
     private static readonly string[] _avatars = new[]
     {
-        "img/officers/avatar-male-1.svg",
-        "img/officers/avatar-male-2.svg",
-        "img/officers/avatar-male-3.svg",
-        "img/officers/avatar-female-1.svg",
-        "img/officers/avatar-female-2.svg"
+        "img/officers/avatar-male-4.svg",
+        "img/officers/avatar-male-5.svg",
+        "img/officers/avatar-female-3.svg",
+        "img/officers/avatar-female-4.svg"
     };
 
     private static string AvatarFor(OfficerPerfDto o)

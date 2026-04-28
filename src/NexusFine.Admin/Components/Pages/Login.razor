@@ -16,7 +16,9 @@
                 <span class="f1"></span><span class="f2"></span><span class="f3"></span>
             </div>
             <div class="login-mark">
-                <div class="brand-eagle"><img src="img/gov/mps-crest.png" alt="MPS" /></div>
+                <div class="brand-eagle">
+                    <img src="img/gov/malawi-coat-of-arms.svg" alt="Coat of Arms of Malawi" />
+                </div>
                 <div>
                     <div class="brand-name">NEXUS<span>FINE</span></div>
                     <div class="brand-sub">Admin Portal · Sign in</div>
@@ -113,12 +115,13 @@
         display: flex; align-items: center; gap: 12px;
     }
     .login-mark .brand-eagle {
-        width: 48px; height: 48px;
+        width: 72px; height: 72px;
         background: var(--white);
-        border: 2px solid var(--gold);
+        border: 3px solid var(--gold);
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        overflow: hidden; padding: 4px;
+        overflow: hidden; padding: 11px;      /* was 6 — keep coat of arms inside the ring */
+        box-shadow: 0 4px 16px rgba(212,175,55,0.22), 0 0 0 4px rgba(212,175,55,0.08);
     }
     .login-mark .brand-eagle img { width: 100%; height: 100%; object-fit: contain; }
     .login-mark .brand-name { font-size: 18px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }

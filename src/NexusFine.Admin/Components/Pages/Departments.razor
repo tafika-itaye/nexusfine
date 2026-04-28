@@ -1,0 +1,317 @@
+@page "/departments"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Departments — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Management</div>
+    <h1 class="page-title">Departments</h1>
+</div>
+
+<!-- TOOLBAR -->
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+    @foreach (var r in _regions)
+    {
+        <button class="btn btn-sm @(_regionFilter == r ? "btn-primary" : "btn-ghost")"
+                @onclick="() => SetRegion(r)">@r</button>
+    }
+    <input class="form-input" style="margin-left:auto;min-width:220px"
+           placeholder="Search district or name…"
+           @bind="_search" @bind:event="oninput" />
+    <button class="btn btn-sm btn-ghost" @onclick="Reload">↻ Refresh</button>
+    <AuthorizeView Roles="Admin">
+        <button class="btn btn-sm btn-gold" @onclick="OpenCreate">＋ Add Department</button>
+    </AuthorizeView>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Loading departments…</span></div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">⚠ @_error</div>
+}
+else
+{
+    var visible = Filtered();
+
+    if (!visible.Any())
+    {
+        <div class="panel" style="padding:48px;text-align:center;color:var(--text-muted-d)">
+            No departments match the current filters.
+        </div>
+    }
+    else
+    {
+        @foreach (var grp in visible.GroupBy(d => d.Region).OrderBy(g => RegionOrder(g.Key)))
+        {
+            var regionImg = $"img/regions/region-{grp.Key.ToLower()}.jpg";
+            <div style="margin-bottom:28px">
+                <div class="region-band" style="background-image:linear-gradient(115deg, rgba(17,28,51,0.92) 0%, rgba(17,28,51,0.72) 60%, rgba(17,28,51,0.45) 100%), url('@regionImg')">
+                    <div>
+                        <div class="section-eyebrow" style="color:var(--gold-bright)">@grp.Key Region</div>
+                        <div class="region-band-title">@grp.Key</div>
+                        <div class="region-band-meta">
+                            @grp.Count() district@(grp.Count() == 1 ? "" : "s") ·
+                            @grp.Sum(x => x.StationCount) station@(grp.Sum(x => x.StationCount) == 1 ? "" : "s") ·
+                            @grp.Sum(x => x.OfficerCount) officer@(grp.Sum(x => x.OfficerCount) == 1 ? "" : "s")
+                        </div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px">
+                    @foreach (var d in grp.OrderBy(x => x.Zone))
+                    {
+                        <div class="panel" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                                <div style="min-width:0">
+                                    <div class="section-eyebrow" style="margin-bottom:4px">@d.Zone</div>
+                                    <div style="font-size:15px;font-weight:700;color:var(--text-on-dark)">@d.Name</div>
+                                </div>
+                                <span class="pill pill-@(d.IsActive ? "active" : "offline")">@(d.IsActive ? "Active" : "Inactive")</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(d.HeadOfficerBadge))
+                            {
+                                <div style="font-size:12px;color:var(--text-muted-d)">
+                                    Head: <span class="mono fw-700" style="color:var(--gold-bright)">#@d.HeadOfficerBadge</span>
+                                </div>
+                            }
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:10px;border-top:1px solid var(--border-mid)">
+                                <Stat Label="Stations" Value="@d.StationCount.ToString()" Size="16" />
+                                <Stat Label="Officers" Value="@($"{d.ActiveOfficerCount}/{d.OfficerCount}")" Size="16" />
+                                <Stat Label="Fines"    Value="@d.FineCount.ToString()" Size="16" Color="var(--gold-bright)" />
+                            </div>
+                            <div style="padding-top:8px;border-top:1px solid var(--border-mid)">
+                                <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted-d)">Revenue (paid)</div>
+                                <div class="mono fw-700" style="font-size:14px;color:var(--success-text)">MK @d.FineRevenue.ToString("N0")</div>
+                            </div>
+                            <AuthorizeView Roles="Admin">
+                                <div style="display:flex;gap:6px;margin-top:4px">
+                                    <button class="btn btn-sm btn-ghost" @onclick="() => OpenEdit(d)">✎ Edit</button>
+                                    @if (d.IsActive)
+                                    {
+                                        <button class="btn btn-sm btn-ghost" @onclick="() => Deactivate(d.Id)">⊘</button>
+                                    }
+                                </div>
+                            </AuthorizeView>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+<!-- CREATE / EDIT MODAL -->
+@if (_modalOpen)
+{
+    <div class="modal-shade" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-hdr">
+                <div>
+                    <div class="section-eyebrow">@(_isEdit ? "Edit" : "Create")</div>
+                    <div class="modal-title">@(_isEdit ? $"Department — {_form.Name}" : "New Department")</div>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">✕</button>
+            </div>
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div class="alert alert-danger" style="margin:12px 18px">⚠ @_modalError</div>
+            }
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Name *</label>
+                        <input class="form-input" @bind="_form.Name" placeholder="e.g. Kasungu Traffic" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">District (zone) *</label>
+                        <input class="form-input" @bind="_form.Zone" placeholder="Kasungu" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Region *</label>
+                        <select class="form-input filter-select" @bind="_form.Region">
+                            <option value="">— Select —</option>
+                            <option value="Northern">Northern</option>
+                            <option value="Central">Central</option>
+                            <option value="Southern">Southern</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Head officer badge</label>
+                        <input class="form-input mono" @bind="_form.HeadOfficerBadge" placeholder="MPS-1042 (optional)" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-on-dark);font-size:13px">
+                            <input type="checkbox" @bind="_form.IsActive" />
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-sm btn-gold" @onclick="Save" disabled="@_saving">
+                    @(_saving ? "Saving…" : (_isEdit ? "Save changes" : "Create department"))
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private List<DepartmentDto> _depts = new();
+    private string _regionFilter = "All";
+    private string _search       = "";
+
+    private static readonly string[] _regions = { "All", "Northern", "Central", "Southern" };
+
+    private bool _modalOpen, _isEdit, _saving;
+    private string? _modalError;
+    private int _editId;
+    private DeptForm _form = new();
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            _depts = await Http.GetFromJsonAsync<List<DepartmentDto>>("api/departments") ?? new();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private List<DepartmentDto> Filtered()
+    {
+        IEnumerable<DepartmentDto> q = _depts;
+        if (_regionFilter != "All") q = q.Where(d => d.Region == _regionFilter);
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var s = _search.Trim();
+            q = q.Where(x =>
+                x.Zone.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                x.Name.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+        return q.ToList();
+    }
+
+    private void SetRegion(string r) { _regionFilter = r; }
+
+    // North → Central → South looks more natural than alphabetical (Central → Northern → Southern).
+    private static int RegionOrder(string r) => r switch
+    {
+        "Northern" => 0,
+        "Central"  => 1,
+        "Southern" => 2,
+        _          => 99
+    };
+
+    private void OpenCreate()
+    {
+        _isEdit = false; _editId = 0;
+        _form = new DeptForm { IsActive = true };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void OpenEdit(DepartmentDto d)
+    {
+        _isEdit = true; _editId = d.Id;
+        _form = new DeptForm
+        {
+            Name             = d.Name,
+            Zone             = d.Zone,
+            Region           = d.Region,
+            HeadOfficerBadge = d.HeadOfficerBadge ?? "",
+            IsActive         = d.IsActive
+        };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _saving = false; }
+
+    private async Task Save()
+    {
+        _modalError = null;
+        if (string.IsNullOrWhiteSpace(_form.Name) ||
+            string.IsNullOrWhiteSpace(_form.Zone) ||
+            string.IsNullOrWhiteSpace(_form.Region))
+        {
+            _modalError = "Name, District and Region are required.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                name             = _form.Name.Trim(),
+                zone             = _form.Zone.Trim(),
+                region           = _form.Region.Trim(),
+                headOfficerBadge = string.IsNullOrWhiteSpace(_form.HeadOfficerBadge) ? null : _form.HeadOfficerBadge.Trim(),
+                isActive         = _form.IsActive
+            };
+            var resp = _isEdit
+                ? await Http.PutAsJsonAsync($"api/departments/{_editId}", payload)
+                : await Http.PostAsJsonAsync("api/departments", payload);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _modalError = problem?.message ?? $"Save failed ({(int)resp.StatusCode}).";
+                return;
+            }
+            _modalOpen = false;
+            await Reload();
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private async Task Deactivate(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/departments/{id}");
+            if (resp.IsSuccessStatusCode) await Reload();
+            else
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _error = problem?.message ?? $"Deactivate failed ({(int)resp.StatusCode}).";
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    record DepartmentDto(
+        int     Id,
+        string  Name,
+        string  Zone,
+        string  Region,
+        string? HeadOfficerBadge,
+        bool    IsActive,
+        int     OfficerCount,
+        int     ActiveOfficerCount,
+        int     StationCount,
+        int     FineCount,
+        decimal FineRevenue
+    );
+    record ErrorPayload(string? message);
+
+    class DeptForm
+    {
+        public string  Name             { get; set; } = "";
+        public string  Zone             { get; set; } = "";
+        public string  Region           { get; set; } = "";
+        public string? HeadOfficerBadge { get; set; }
+        public bool    IsActive         { get; set; } = true;
+    }
+}

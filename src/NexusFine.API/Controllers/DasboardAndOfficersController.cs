@@ -270,6 +270,84 @@ public class OfficersController : ControllerBase
         return NoContent();
     }
 
+    // POST api/officers  (HQ-only: create new officer record)
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create([FromBody] OfficerUpsert req)
+    {
+        if (string.IsNullOrWhiteSpace(req.BadgeNumber) ||
+            string.IsNullOrWhiteSpace(req.FirstName)   ||
+            string.IsNullOrWhiteSpace(req.LastName)    ||
+            string.IsNullOrWhiteSpace(req.Rank))
+            return BadRequest(new { message = "BadgeNumber, FirstName, LastName and Rank are required." });
+
+        if (await _db.Officers.AnyAsync(o => o.BadgeNumber == req.BadgeNumber))
+            return Conflict(new { message = $"Badge '{req.BadgeNumber}' is already in use." });
+
+        if (!await _db.Departments.AnyAsync(d => d.Id == req.DepartmentId))
+            return BadRequest(new { message = $"Department {req.DepartmentId} not found." });
+
+        if (req.StationId.HasValue && !await _db.Stations.AnyAsync(s => s.Id == req.StationId.Value))
+            return BadRequest(new { message = $"Station {req.StationId} not found." });
+
+        if (req.PrimaryPatrolPostId.HasValue && !await _db.PatrolPosts.AnyAsync(p => p.Id == req.PrimaryPatrolPostId.Value))
+            return BadRequest(new { message = $"Patrol post {req.PrimaryPatrolPostId} not found." });
+
+        var o = new Officer
+        {
+            BadgeNumber          = req.BadgeNumber.Trim(),
+            FirstName            = req.FirstName.Trim(),
+            LastName             = req.LastName.Trim(),
+            Rank                 = req.Rank.Trim(),
+            Phone                = req.Phone?.Trim(),
+            Email                = req.Email?.Trim(),
+            NfcTagId             = req.NfcTagId?.Trim(),
+            DepartmentId         = req.DepartmentId,
+            StationId            = req.StationId,
+            PrimaryPatrolPostId  = req.PrimaryPatrolPostId,
+            Status               = OfficerStatus.Offline,
+            IsActive             = req.IsActive
+        };
+        _db.Officers.Add(o);
+        await _db.SaveChangesAsync();
+        return Created($"api/officers/{o.Id}", new { o.Id, o.BadgeNumber });
+    }
+
+    // PUT api/officers/{id}
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(int id, [FromBody] OfficerUpsert req)
+    {
+        var o = await _db.Officers.FindAsync(id);
+        if (o is null) return NotFound();
+
+        if (!string.IsNullOrWhiteSpace(req.BadgeNumber) && req.BadgeNumber != o.BadgeNumber &&
+            await _db.Officers.AnyAsync(x => x.BadgeNumber == req.BadgeNumber && x.Id != id))
+            return Conflict(new { message = $"Badge '{req.BadgeNumber}' is already in use." });
+
+        if (req.StationId.HasValue && !await _db.Stations.AnyAsync(s => s.Id == req.StationId.Value))
+            return BadRequest(new { message = $"Station {req.StationId} not found." });
+
+        if (req.PrimaryPatrolPostId.HasValue && !await _db.PatrolPosts.AnyAsync(p => p.Id == req.PrimaryPatrolPostId.Value))
+            return BadRequest(new { message = $"Patrol post {req.PrimaryPatrolPostId} not found." });
+
+        o.BadgeNumber         = req.BadgeNumber?.Trim() ?? o.BadgeNumber;
+        o.FirstName           = req.FirstName?.Trim()   ?? o.FirstName;
+        o.LastName            = req.LastName?.Trim()    ?? o.LastName;
+        o.Rank                = req.Rank?.Trim()        ?? o.Rank;
+        o.Phone               = req.Phone?.Trim();
+        o.Email               = req.Email?.Trim();
+        o.NfcTagId            = req.NfcTagId?.Trim();
+        o.DepartmentId        = req.DepartmentId == 0 ? o.DepartmentId : req.DepartmentId;
+        o.StationId           = req.StationId;
+        o.PrimaryPatrolPostId = req.PrimaryPatrolPostId;
+        o.IsActive            = req.IsActive;
+        o.UpdatedAt           = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { o.Id, o.BadgeNumber });
+    }
+
     private static object MapToDto(Officer o) => new
     {
         o.Id,
@@ -288,6 +366,9 @@ public class OfficersController : ControllerBase
         o.LastLatitude,
         o.LastLongitude,
         o.IsActive,
+        o.DepartmentId,
+        o.StationId,
+        o.PrimaryPatrolPostId,
         Department = o.Department is null ? null : new
         {
             o.Department.Name,
@@ -295,6 +376,20 @@ public class OfficersController : ControllerBase
         }
     };
 }
+
+public record OfficerUpsert(
+    string  BadgeNumber,
+    string  FirstName,
+    string  LastName,
+    string  Rank,
+    string? Phone,
+    string? Email,
+    string? NfcTagId,
+    int     DepartmentId,
+    int?    StationId,
+    int?    PrimaryPatrolPostId,
+    bool    IsActive
+);
 
 // ── REQUEST DTOs ──────────────────────────────────────────────
 public record UpdateLocationRequest(double Latitude, double Longitude, string LocationName);

@@ -6,9 +6,28 @@
 
 <PageTitle>Dashboard — NexusFine Admin</PageTitle>
 
-<div class="page-header">
-    <div class="section-eyebrow">Operations</div>
-    <h1 class="page-title">Dashboard</h1>
+<!-- HERO BAND -->
+<div class="dash-hero">
+    <div class="dash-hero-flag"><span class="f1"></span><span class="f2"></span><span class="f3"></span></div>
+    <div class="dash-hero-grid">
+        <div class="dash-hero-text">
+            <div class="section-eyebrow" style="color:var(--gold-bright)">Republic of Malawi · Operations</div>
+            <h1 class="page-title" style="margin:6px 0 4px">NexusFine Command Centre</h1>
+            <div style="font-size:13px;color:var(--text-muted-d);max-width:560px;line-height:1.6">
+                Live road-traffic enforcement view across all districts.
+                Authorised by the <strong style="color:var(--text-on-dark)">Malawi Police Service</strong>,
+                operated by <strong style="color:var(--text-on-dark)">DRTSS</strong>.
+            </div>
+            <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;font-size:11px;color:var(--text-muted-d)">
+                <span>📅 @DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
+                <span>·</span>
+                <span>🇲🇼 Lilongwe HQ</span>
+            </div>
+        </div>
+        <div class="dash-hero-emblem">
+            <img src="img/gov/malawi-coat-of-arms.svg" alt="Coat of Arms of Malawi" />
+        </div>
+    </div>
 </div>
 
 @if (_loading)
@@ -237,13 +256,16 @@ else
         string   Offence
     );
 
+    // Pool restricted to the proper portrait SVGs the user uploaded.
+    // The original avatar-male-1..3 / avatar-female-1..2 SVGs are tiny placeholder
+    // files that render as a landscape/crest icon, so they're excluded from rotation.
+    // (PNG variants under the same names exist but are 1.2 MB each — too heavy for table rows.)
     private static readonly string[] _avatars = new[]
     {
-        "img/officers/avatar-male-1.svg",
-        "img/officers/avatar-male-2.svg",
-        "img/officers/avatar-male-3.svg",
-        "img/officers/avatar-female-1.svg",
-        "img/officers/avatar-female-2.svg"
+        "img/officers/avatar-male-4.svg",
+        "img/officers/avatar-male-5.svg",
+        "img/officers/avatar-female-3.svg",
+        "img/officers/avatar-female-4.svg"
     };
 
     private static string AvatarFor(string? badge)

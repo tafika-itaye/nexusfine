@@ -1,0 +1,267 @@
+@page "/offencecodes"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Offence Codes — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Management</div>
+    <h1 class="page-title">Offence Codes</h1>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">Schedule of Offences</div>
+            <div class="panel-sub">@_codes.Count code@(_codes.Count == 1 ? "" : "s") · default tariff in MK</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+            <input class="form-input" style="min-width:240px"
+                   placeholder="Filter by code or name…"
+                   @bind="_filter" @bind:event="oninput" />
+            <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-muted-d)">
+                <input type="checkbox" @bind="_includeInactive" @bind:after="Reload" />
+                Show inactive
+            </label>
+            <button class="btn btn-sm btn-ghost" @onclick="Reload">↻ Refresh</button>
+            <AuthorizeView Roles="Admin">
+                <button class="btn btn-sm btn-gold" @onclick="OpenCreate">＋ New Code</button>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading offence codes…</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th style="text-align:right">Default Amount</th>
+                        <th>Status</th>
+                        <AuthorizeView Roles="Admin"><Authorized><th></th></Authorized></AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var filtered = string.IsNullOrWhiteSpace(_filter)
+                            ? _codes
+                            : _codes.Where(c =>
+                                c.Code.Contains(_filter, StringComparison.OrdinalIgnoreCase) ||
+                                c.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+                              .ToList();
+                    }
+                    @if (!filtered.Any())
+                    {
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-muted-d);padding:32px">No matching offence codes.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in filtered)
+                        {
+                            <tr>
+                                <td class="mono fw-700 text-gold">@c.Code</td>
+                                <td style="font-weight:600">@c.Name</td>
+                                <td style="color:var(--text-muted-d);font-size:12px">@c.Description</td>
+                                <td class="mono fw-700" style="text-align:right">MK @c.DefaultFineAmount.ToString("N0")</td>
+                                <td><span class="pill pill-@(c.IsActive ? "active" : "offline")">@(c.IsActive ? "Active" : "Inactive")</span></td>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <td style="white-space:nowrap">
+                                            <button class="btn btn-sm btn-ghost" @onclick="() => OpenEdit(c)">✎</button>
+                                            @if (c.IsActive)
+                                            {
+                                                <button class="btn btn-sm btn-ghost" @onclick="() => Deactivate(c.Id)">⊘</button>
+                                            }
+                                        </td>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_modalOpen)
+{
+    <div class="modal-shade" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-hdr">
+                <div>
+                    <div class="section-eyebrow">@(_isEdit ? "Edit" : "Create")</div>
+                    <div class="modal-title">@(_isEdit ? $"Offence Code — {_form.Code}" : "New Offence Code")</div>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">✕</button>
+            </div>
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div class="alert alert-danger" style="margin:12px 18px">⚠ @_modalError</div>
+            }
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Code *</label>
+                        <input class="form-input mono" @bind="_form.Code" placeholder="OC-011" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Default Fine (MK) *</label>
+                        <input class="form-input mono" @bind="_form.DefaultFineAmount" type="number" min="0" step="500" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Name *</label>
+                        <input class="form-input" @bind="_form.Name" placeholder="e.g. Tinted Windows Beyond Spec" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Description</label>
+                        <input class="form-input" @bind="_form.Description" placeholder="What constitutes this offence in plain language" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-on-dark);font-size:13px">
+                            <input type="checkbox" @bind="_form.IsActive" />
+                            Active (officers can issue fines under this code)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-sm btn-gold" @onclick="Save" disabled="@_saving">
+                    @(_saving ? "Saving…" : (_isEdit ? "Save changes" : "Create code"))
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private List<OffenceCodeDto> _codes = new();
+    private string _filter = "";
+    private bool   _includeInactive;
+
+    private bool _modalOpen, _isEdit, _saving;
+    private string? _modalError;
+    private int _editId;
+    private OffenceForm _form = new();
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = _includeInactive ? "api/offencecodes?includeInactive=true" : "api/offencecodes";
+            _codes = await Http.GetFromJsonAsync<List<OffenceCodeDto>>(url) ?? new();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private void OpenCreate()
+    {
+        _isEdit = false; _editId = 0;
+        _form = new OffenceForm { IsActive = true };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void OpenEdit(OffenceCodeDto c)
+    {
+        _isEdit = true; _editId = c.Id;
+        _form = new OffenceForm
+        {
+            Code              = c.Code,
+            Name              = c.Name,
+            Description       = c.Description,
+            DefaultFineAmount = c.DefaultFineAmount,
+            IsActive          = c.IsActive
+        };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _saving = false; }
+
+    private async Task Save()
+    {
+        _modalError = null;
+        if (string.IsNullOrWhiteSpace(_form.Code) || string.IsNullOrWhiteSpace(_form.Name))
+        {
+            _modalError = "Code and Name are required.";
+            return;
+        }
+        if (_form.DefaultFineAmount < 0)
+        {
+            _modalError = "Default fine must be non-negative.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                code              = _form.Code.Trim(),
+                name              = _form.Name.Trim(),
+                description       = _form.Description?.Trim() ?? "",
+                defaultFineAmount = _form.DefaultFineAmount,
+                isActive          = _form.IsActive
+            };
+
+            var resp = _isEdit
+                ? await Http.PutAsJsonAsync($"api/offencecodes/{_editId}", payload)
+                : await Http.PostAsJsonAsync("api/offencecodes", payload);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _modalError = problem?.message ?? $"Save failed ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            _modalOpen = false;
+            await Reload();
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private async Task Deactivate(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/offencecodes/{id}");
+            if (resp.IsSuccessStatusCode) await Reload();
+            else _error = $"Deactivate failed ({(int)resp.StatusCode}).";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    record OffenceCodeDto(int Id, string Code, string Name, string Description, decimal DefaultFineAmount, bool IsActive);
+    record ErrorPayload(string? message);
+
+    class OffenceForm
+    {
+        public string  Code              { get; set; } = "";
+        public string  Name              { get; set; } = "";
+        public string  Description       { get; set; } = "";
+        public decimal DefaultFineAmount { get; set; }
+        public bool    IsActive          { get; set; } = true;
+    }
+}

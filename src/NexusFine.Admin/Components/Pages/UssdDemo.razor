@@ -1,0 +1,193 @@
+@page "/ussd"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>USSD Channel — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Citizen Channels</div>
+    <h1 class="page-title">USSD <span style="font-size:14px;color:var(--text-muted-d);font-weight:600;letter-spacing:0.05em">*244#</span></h1>
+</div>
+
+<div style="display:grid;grid-template-columns:minmax(300px,360px) 1fr;gap:24px;align-items:flex-start">
+
+    <!-- ── FEATURE-PHONE MOCKUP ── -->
+    <div class="featurephone">
+        <div class="featurephone-screen">
+            <div class="ussd-header">NexusFine</div>
+            <div class="ussd-body">
+                @if (string.IsNullOrEmpty(_displayed))
+                {
+                    <div style="opacity:0.6">Dial *244# to begin…</div>
+                }
+                else
+                {
+                    @((MarkupString)RenderUssd(_displayed))
+                }
+            </div>
+            <div class="ussd-footer">
+                <span>Cancel</span>
+                <span>Send</span>
+            </div>
+        </div>
+
+        <!-- input pad -->
+        <div class="ussd-pad">
+            <input class="form-input mono" style="font-size:16px;letter-spacing:0.1em"
+                   @bind="_input" @bind:event="oninput" @onkeydown="OnKey"
+                   placeholder="@(_started ? "Reply…" : "Type *244# and send")" />
+            <button class="btn btn-sm btn-gold" @onclick="OnSend" disabled="@_busy">
+                @(_busy ? "…" : "Send")
+            </button>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:10px">
+            <button class="btn btn-sm btn-ghost" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-ghost" @onclick="Reset">↺ Reset</button>
+        </div>
+    </div>
+
+    <!-- ── CONTEXT PANEL ── -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel" style="padding:18px 20px">
+            <div class="section-eyebrow">Why USSD?</div>
+            <div style="font-size:13px;color:var(--text-on-dark);line-height:1.7;margin-top:8px">
+                Roughly <strong>72%</strong> of Malawian SIMs are on feature phones with no internet.
+                USSD <span class="mono">*244#</span> works on any handset, in any cell coverage,
+                with zero data charge. It is the most inclusive citizen channel.
+            </div>
+        </div>
+
+        <div class="panel" style="padding:18px 20px">
+            <div class="section-eyebrow">Demo flow</div>
+            <ol style="margin:8px 0 0;padding-left:20px;color:var(--text-on-dark);font-size:13px;line-height:1.9">
+                <li>Type <span class="kbd">*244#</span> and press <strong>Send</strong></li>
+                <li>Reply <span class="kbd">1</span> — Look up by plate</li>
+                <li>Send <span class="kbd">MW-LL-1234</span></li>
+                <li>Pick a fine, then a channel, then a phone number</li>
+            </ol>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-sm btn-gold" @onclick="RunScript" disabled="@_scripting">
+                    @(_scripting ? "Running…" : "▶ Run scripted demo")
+                </button>
+            </div>
+        </div>
+
+        <div class="panel" style="padding:18px 20px">
+            <div class="section-eyebrow">Session</div>
+            <FieldRow Label="ID"    Value="@(_sessionId ?? "—")" Mono="true" />
+            <FieldRow Label="State" Value="@(_state ?? "—")"     Mono="true" />
+            <div style="margin-top:14px;font-size:11px;color:var(--text-muted-d);line-height:1.5">
+                Production wiring: Africa's Talking USSD aggregator. The same state machine
+                serves both WhatsApp and USSD; only the visual presentation differs.
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string  _input     = "";
+    private string  _displayed = "";
+    private string? _sessionId;
+    private string? _state;
+    private bool    _started;
+    private bool    _busy;
+    private bool    _scripting;
+
+    private async Task OnSend()
+    {
+        if (_busy) return;
+        var text = _input.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        _input = "";
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            if (!_started)
+            {
+                if (text.Replace(" ", "").Equals("*244#", StringComparison.OrdinalIgnoreCase))
+                {
+                    var resp = await Http.PostAsJsonAsync("api/chatbot/ussd/start", new { });
+                    var turn = await resp.Content.ReadFromJsonAsync<ChatTurn>();
+                    ApplyTurn(turn);
+                    _started = true;
+                }
+                else
+                {
+                    _displayed = "Invalid code. Dial *244# to begin.";
+                }
+            }
+            else
+            {
+                var resp = await Http.PostAsJsonAsync("api/chatbot/ussd/message",
+                    new { sessionId = _sessionId, text });
+                var turn = await resp.Content.ReadFromJsonAsync<ChatTurn>();
+                ApplyTurn(turn);
+            }
+        }
+        finally { _busy = false; StateHasChanged(); }
+    }
+
+    private void ApplyTurn(ChatTurn? t)
+    {
+        if (t is null) return;
+        _sessionId = t.SessionId;
+        _state     = t.State;
+        // USSD only shows the latest bot message — no scrollback
+        var last = (t.Replies ?? new()).LastOrDefault();
+        if (last is not null) _displayed = last.Text;
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await OnSend();
+    }
+
+    private async Task Reset()
+    {
+        _input = ""; _displayed = ""; _started = false;
+        _sessionId = null; _state = null;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task Cancel()
+    {
+        _displayed = "Session cancelled. Dial *244# to begin again.";
+        _started = false;
+        _sessionId = null;
+        await Task.CompletedTask;
+    }
+
+    private async Task RunScript()
+    {
+        _scripting = true;
+        await Reset();
+        StateHasChanged();
+        try
+        {
+            _input = "*244#";       await Task.Delay(500); await OnSend(); await Task.Delay(900);
+            _input = "1";            await Task.Delay(500); await OnSend(); await Task.Delay(900);
+            _input = "MW-LL-1234";   await Task.Delay(500); await OnSend(); await Task.Delay(1100);
+            _input = "1";            await Task.Delay(500); await OnSend(); await Task.Delay(900);
+            _input = "1";            await Task.Delay(500); await OnSend(); await Task.Delay(900);
+            _input = "0991234567";   await Task.Delay(500); await OnSend();
+        }
+        finally { _scripting = false; StateHasChanged(); }
+    }
+
+    // Render USSD-style: strip *bold* etc. — just plain monospace lines
+    private static string RenderUssd(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "";
+        var s = System.Net.WebUtility.HtmlEncode(raw);
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\*([^*\n]+)\*", "<strong>$1</strong>");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"`([^`\n]+)`", "<u>$1</u>");
+        s = s.Replace("\n", "<br/>");
+        return s;
+    }
+
+    record ChatTurn(string SessionId, string State, List<BotBubble> Replies, List<string> QuickReplies);
+    record BotBubble(string From, string Text);
+}

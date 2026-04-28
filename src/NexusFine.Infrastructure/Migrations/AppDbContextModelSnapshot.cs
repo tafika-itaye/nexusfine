@@ -207,7 +207,8 @@ namespace NexusFine.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("HeadOfficerBadge")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -217,12 +218,19 @@ namespace NexusFine.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Region")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("Zone")
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Region");
 
                     b.ToTable("Departments");
 
@@ -232,6 +240,7 @@ namespace NexusFine.Infrastructure.Migrations
                             Id = 1,
                             IsActive = true,
                             Name = "Lilongwe Traffic",
+                            Region = "Central",
                             Zone = "Lilongwe"
                         },
                         new
@@ -239,6 +248,7 @@ namespace NexusFine.Infrastructure.Migrations
                             Id = 2,
                             IsActive = true,
                             Name = "Blantyre Traffic",
+                            Region = "Southern",
                             Zone = "Blantyre"
                         },
                         new
@@ -246,15 +256,281 @@ namespace NexusFine.Infrastructure.Migrations
                             Id = 3,
                             IsActive = true,
                             Name = "Mzuzu Traffic",
-                            Zone = "Mzuzu"
+                            Region = "Northern",
+                            Zone = "Mzimba"
                         },
                         new
                         {
                             Id = 4,
                             IsActive = true,
                             Name = "Zomba Traffic",
+                            Region = "Southern",
                             Zone = "Zomba"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            IsActive = true,
+                            Name = "Chitipa Traffic",
+                            Region = "Northern",
+                            Zone = "Chitipa"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            IsActive = true,
+                            Name = "Karonga Traffic",
+                            Region = "Northern",
+                            Zone = "Karonga"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            IsActive = true,
+                            Name = "Likoma Traffic",
+                            Region = "Northern",
+                            Zone = "Likoma"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            IsActive = true,
+                            Name = "Nkhata Bay Traffic",
+                            Region = "Northern",
+                            Zone = "Nkhata Bay"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            IsActive = true,
+                            Name = "Rumphi Traffic",
+                            Region = "Northern",
+                            Zone = "Rumphi"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            IsActive = true,
+                            Name = "Dedza Traffic",
+                            Region = "Central",
+                            Zone = "Dedza"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            IsActive = true,
+                            Name = "Dowa Traffic",
+                            Region = "Central",
+                            Zone = "Dowa"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            IsActive = true,
+                            Name = "Kasungu Traffic",
+                            Region = "Central",
+                            Zone = "Kasungu"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            IsActive = true,
+                            Name = "Mchinji Traffic",
+                            Region = "Central",
+                            Zone = "Mchinji"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            IsActive = true,
+                            Name = "Nkhotakota Traffic",
+                            Region = "Central",
+                            Zone = "Nkhotakota"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            IsActive = true,
+                            Name = "Ntcheu Traffic",
+                            Region = "Central",
+                            Zone = "Ntcheu"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            IsActive = true,
+                            Name = "Ntchisi Traffic",
+                            Region = "Central",
+                            Zone = "Ntchisi"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            IsActive = true,
+                            Name = "Salima Traffic",
+                            Region = "Central",
+                            Zone = "Salima"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            IsActive = true,
+                            Name = "Balaka Traffic",
+                            Region = "Southern",
+                            Zone = "Balaka"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            IsActive = true,
+                            Name = "Chikwawa Traffic",
+                            Region = "Southern",
+                            Zone = "Chikwawa"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            IsActive = true,
+                            Name = "Chiradzulu Traffic",
+                            Region = "Southern",
+                            Zone = "Chiradzulu"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            IsActive = true,
+                            Name = "Machinga Traffic",
+                            Region = "Southern",
+                            Zone = "Machinga"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            IsActive = true,
+                            Name = "Mangochi Traffic",
+                            Region = "Southern",
+                            Zone = "Mangochi"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            IsActive = true,
+                            Name = "Mulanje Traffic",
+                            Region = "Southern",
+                            Zone = "Mulanje"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            IsActive = true,
+                            Name = "Mwanza Traffic",
+                            Region = "Southern",
+                            Zone = "Mwanza"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            IsActive = true,
+                            Name = "Neno Traffic",
+                            Region = "Southern",
+                            Zone = "Neno"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            IsActive = true,
+                            Name = "Nsanje Traffic",
+                            Region = "Southern",
+                            Zone = "Nsanje"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            IsActive = true,
+                            Name = "Phalombe Traffic",
+                            Region = "Southern",
+                            Zone = "Phalombe"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            IsActive = true,
+                            Name = "Thyolo Traffic",
+                            Region = "Southern",
+                            Zone = "Thyolo"
                         });
+                });
+
+            modelBuilder.Entity("NexusFine.Core.Entities.Device", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AppVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentOfficerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Imei")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("PairedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Serial")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("StationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentOfficerId");
+
+                    b.HasIndex("Serial")
+                        .IsUnique();
+
+                    b.HasIndex("StationId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Devices");
                 });
 
             modelBuilder.Entity("NexusFine.Core.Entities.Fine", b =>
@@ -563,10 +839,16 @@ namespace NexusFine.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("PrimaryPatrolPostId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Rank")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int?>("StationId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -589,7 +871,123 @@ namespace NexusFine.Infrastructure.Migrations
 
                     b.HasIndex("NfcTagId");
 
+                    b.HasIndex("PrimaryPatrolPostId");
+
+                    b.HasIndex("StationId");
+
                     b.ToTable("Officers");
+                });
+
+            modelBuilder.Entity("NexusFine.Core.Entities.PatrolPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("Lat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Lng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("StationId");
+
+                    b.ToTable("PatrolPosts");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "PP-LIL-018-A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Kamuzu Hwy North",
+                            StationId = 2,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "PP-LIL-018-B",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Kamuzu Hwy South",
+                            StationId = 2,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "PP-LIL-001-A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Area 18 Roundabout",
+                            StationId = 1,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "PP-BLT-001-A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Limbe Market Junction",
+                            StationId = 3,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "PP-MZU-001-A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Mzuzu Bus Depot",
+                            StationId = 4,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "PP-ZBA-001-A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = true,
+                            Name = "Zomba M3 Junction",
+                            StationId = 5,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
                 });
 
             modelBuilder.Entity("NexusFine.Core.Entities.Payment", b =>
@@ -656,6 +1054,494 @@ namespace NexusFine.Infrastructure.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("NexusFine.Core.Entities.Station", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ConsecutiveFailedSyncs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("Lat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Lng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("OfficerInChargeBadge")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("PhysicalAddress")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StationServerEndpoint")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StationServerPublicKey")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Zone")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("Zone");
+
+                    b.ToTable("Stations");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "STN-LIL-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 750 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 1,
+                            IsActive = true,
+                            Name = "Area 18 Police Station",
+                            PhysicalAddress = "Area 18, Lilongwe",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Lilongwe"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "STN-LIL-002",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 750 200",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 1,
+                            IsActive = true,
+                            Name = "Kamuzu Highway Checkpoint",
+                            PhysicalAddress = "M1 Kamuzu Highway, North",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Lilongwe"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "STN-BLT-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 840 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 2,
+                            IsActive = true,
+                            Name = "Limbe Police Station",
+                            PhysicalAddress = "Limbe, Blantyre",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Blantyre"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "STN-MZU-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 332 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 3,
+                            IsActive = true,
+                            Name = "Mzuzu Central Police Station",
+                            PhysicalAddress = "Mzuzu CBD",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Mzimba"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "STN-ZBA-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 525 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 4,
+                            IsActive = true,
+                            Name = "Zomba Police Station",
+                            PhysicalAddress = "Zomba CBD",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Zomba"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "STN-CHI-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 382 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 5,
+                            IsActive = true,
+                            Name = "Chitipa Police Station",
+                            PhysicalAddress = "Chitipa Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Chitipa"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Code = "STN-KAR-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 362 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 6,
+                            IsActive = true,
+                            Name = "Karonga Police Station",
+                            PhysicalAddress = "Karonga Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Karonga"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Code = "STN-LIK-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 374 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 7,
+                            IsActive = true,
+                            Name = "Likoma Island Police Post",
+                            PhysicalAddress = "Chizumulu Harbour",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Likoma"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Code = "STN-NKB-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 352 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 8,
+                            IsActive = true,
+                            Name = "Nkhata Bay Police Station",
+                            PhysicalAddress = "Nkhata Bay Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Nkhata Bay"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Code = "STN-RUM-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 372 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 9,
+                            IsActive = true,
+                            Name = "Rumphi Police Station",
+                            PhysicalAddress = "Rumphi Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Rumphi"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Code = "STN-DED-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 223 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 10,
+                            IsActive = true,
+                            Name = "Dedza Police Station",
+                            PhysicalAddress = "Dedza Boma, M1",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Dedza"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Code = "STN-DOW-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 282 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 11,
+                            IsActive = true,
+                            Name = "Dowa Police Station",
+                            PhysicalAddress = "Dowa Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Dowa"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Code = "STN-KAS-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 253 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 12,
+                            IsActive = true,
+                            Name = "Kasungu Police Station",
+                            PhysicalAddress = "Kasungu Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Kasungu"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Code = "STN-MCH-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 242 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 13,
+                            IsActive = true,
+                            Name = "Mchinji Border Police Station",
+                            PhysicalAddress = "Mchinji Border (Zambia)",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Mchinji"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Code = "STN-NKK-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 292 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 14,
+                            IsActive = true,
+                            Name = "Nkhotakota Police Station",
+                            PhysicalAddress = "Nkhotakota Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Nkhotakota"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Code = "STN-NTC-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 235 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 15,
+                            IsActive = true,
+                            Name = "Ntcheu Police Station",
+                            PhysicalAddress = "Ntcheu Boma, M1",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Ntcheu"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Code = "STN-NTI-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 295 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 16,
+                            IsActive = true,
+                            Name = "Ntchisi Police Station",
+                            PhysicalAddress = "Ntchisi Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Ntchisi"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Code = "STN-SAL-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 263 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 17,
+                            IsActive = true,
+                            Name = "Salima Police Station",
+                            PhysicalAddress = "Salima Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Salima"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Code = "STN-BAL-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 552 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 18,
+                            IsActive = true,
+                            Name = "Balaka Police Station",
+                            PhysicalAddress = "Balaka Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Balaka"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Code = "STN-CHK-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 422 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 19,
+                            IsActive = true,
+                            Name = "Chikwawa Police Station",
+                            PhysicalAddress = "Chikwawa Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Chikwawa"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Code = "STN-CHZ-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 462 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 20,
+                            IsActive = true,
+                            Name = "Chiradzulu Police Station",
+                            PhysicalAddress = "Chiradzulu Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Chiradzulu"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Code = "STN-MAC-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 535 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 21,
+                            IsActive = true,
+                            Name = "Machinga Police Station",
+                            PhysicalAddress = "Liwonde Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Machinga"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Code = "STN-MAN-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 584 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 22,
+                            IsActive = true,
+                            Name = "Mangochi Police Station",
+                            PhysicalAddress = "Mangochi Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Mangochi"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Code = "STN-MUL-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 466 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 23,
+                            IsActive = true,
+                            Name = "Mulanje Police Station",
+                            PhysicalAddress = "Mulanje Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Mulanje"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Code = "STN-MWA-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 432 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 24,
+                            IsActive = true,
+                            Name = "Mwanza Border Police Station",
+                            PhysicalAddress = "Mwanza Border (Mozambique)",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Mwanza"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Code = "STN-NEN-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 433 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 25,
+                            IsActive = true,
+                            Name = "Neno Police Station",
+                            PhysicalAddress = "Neno Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Neno"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Code = "STN-NSA-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 451 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 26,
+                            IsActive = true,
+                            Name = "Nsanje Police Station",
+                            PhysicalAddress = "Nsanje Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Nsanje"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Code = "STN-PHA-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 467 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 27,
+                            IsActive = true,
+                            Name = "Phalombe Police Station",
+                            PhysicalAddress = "Phalombe Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Phalombe"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Code = "STN-THY-001",
+                            ConsecutiveFailedSyncs = 0,
+                            ContactPhone = "+265 1 473 100",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DepartmentId = 28,
+                            IsActive = true,
+                            Name = "Thyolo Police Station",
+                            PhysicalAddress = "Thyolo Boma",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Zone = "Thyolo"
+                        });
+                });
+
             modelBuilder.Entity("NexusFine.Core.Entities.AppUser", b =>
                 {
                     b.HasOne("NexusFine.Core.Entities.Officer", "Officer")
@@ -675,6 +1561,24 @@ namespace NexusFine.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Fine");
+                });
+
+            modelBuilder.Entity("NexusFine.Core.Entities.Device", b =>
+                {
+                    b.HasOne("NexusFine.Core.Entities.Officer", "CurrentOfficer")
+                        .WithMany()
+                        .HasForeignKey("CurrentOfficerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NexusFine.Core.Entities.Station", "Station")
+                        .WithMany("Devices")
+                        .HasForeignKey("StationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CurrentOfficer");
+
+                    b.Navigation("Station");
                 });
 
             modelBuilder.Entity("NexusFine.Core.Entities.Fine", b =>
@@ -712,7 +1616,32 @@ namespace NexusFine.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("NexusFine.Core.Entities.PatrolPost", "PrimaryPatrolPost")
+                        .WithMany()
+                        .HasForeignKey("PrimaryPatrolPostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NexusFine.Core.Entities.Station", "Station")
+                        .WithMany("Officers")
+                        .HasForeignKey("StationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Department");
+
+                    b.Navigation("PrimaryPatrolPost");
+
+                    b.Navigation("Station");
+                });
+
+            modelBuilder.Entity("NexusFine.Core.Entities.PatrolPost", b =>
+                {
+                    b.HasOne("NexusFine.Core.Entities.Station", "Station")
+                        .WithMany("PatrolPosts")
+                        .HasForeignKey("StationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Station");
                 });
 
             modelBuilder.Entity("NexusFine.Core.Entities.Payment", b =>
@@ -726,11 +1655,24 @@ namespace NexusFine.Infrastructure.Migrations
                     b.Navigation("Fine");
                 });
 
+            modelBuilder.Entity("NexusFine.Core.Entities.Station", b =>
+                {
+                    b.HasOne("NexusFine.Core.Entities.Department", "Department")
+                        .WithMany("Stations")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("NexusFine.Core.Entities.Department", b =>
                 {
                     b.Navigation("Fines");
 
                     b.Navigation("Officers");
+
+                    b.Navigation("Stations");
                 });
 
             modelBuilder.Entity("NexusFine.Core.Entities.Fine", b =>
@@ -748,6 +1690,15 @@ namespace NexusFine.Infrastructure.Migrations
             modelBuilder.Entity("NexusFine.Core.Entities.Officer", b =>
                 {
                     b.Navigation("Fines");
+                });
+
+            modelBuilder.Entity("NexusFine.Core.Entities.Station", b =>
+                {
+                    b.Navigation("Devices");
+
+                    b.Navigation("Officers");
+
+                    b.Navigation("PatrolPosts");
                 });
 #pragma warning restore 612, 618
         }

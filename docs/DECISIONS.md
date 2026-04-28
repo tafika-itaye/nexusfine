@@ -252,3 +252,104 @@ against the existing API JWT endpoint. Two options were considered:
 `JwtAuthStateProvider.OnAfterRenderAsync` and wire the API's existing
 `refreshToken` field to a `/api/auth/refresh` endpoint. Tracked under the
 "Polish" module (Module 7).
+
+---
+
+## 2026-04-27 · D-012 — Distributed three-tier topology (HQ ↔ Station ↔ Device)
+
+**Context.** Single-node assumption baked into Modules 0–3 was insufficient.
+Real deployment needs offline-tolerant operation at rural checkpoints
+(Mchinji, Karonga, Nsanje). HQ centralisation of reference data was
+non-negotiable for trust, but per-transaction HQ round-trips were
+operationally unworkable.
+
+**Decision.** Three tiers, each independently operable when the tier above
+is unreachable:
+
+1. **HQ (Lilongwe DRTSS):** sole source of truth for reference data
+   (Department, Station, PatrolPost, OffenceCode, Officer registry).
+   Master audit log. Treasury settlement.
+2. **Station Server (one per police station — NUC + UPS + 4G failover):**
+   replicated reference cache, owns counter-cash payments, owns its officers'
+   operational records, holds the citizen-payable index for offline lookups.
+3. **Officer device (Android tablet, MAUI):** scoped reference cache, queues
+   field-issued fines and payments to push at shift end + every 2h on network.
+
+**Authority rule.** Reference data flows down (HQ writes, others read).
+Operational data flows up (devices/stations write, HQ aggregates).
+
+**Reference numbering.** Prefix-then-canonicalise. Devices mint
+`DEV{deviceId}-{seq}`, stations mint `STN{stationId}-{seq}` for fines
+and `MPAY-STN{stationId}-{seq}` for counter cash receipts. HQ assigns
+the canonical `NXF-{year}-{seq6}` on first sync.
+
+**Sync.** HQ↔Station every 5 min over mTLS. Station↔Device at shift
+boundaries + every 2h auto. End-user UX is a green/yellow/red pill;
+technical sync details live in the audit log. Alarm bar at HQ + tablet
+after 2 consecutive failed-sync days. Device auto-revokes after 72h
+of no heartbeat.
+
+**Counter mobile money: NO.** Strict role separation — stations process
+counter cash only; mobile-money payments must originate from the
+officer device, the citizen portal, USSD, or WhatsApp.
+
+**Officer credential reset.** Always HQ IT helpdesk. No
+station-side / offline reset path.
+
+**Data retention (recommended, pending MPS / MACRA sign-off):** station
+12 months rolling, then auto-purge with a "still-synced?" guard. HQ
+indefinite for audit, 7 years for financial records, 10 years for
+disputed fines.
+
+**Hardware additions.** Per station: NUC server (~MWK 1.4M), 1500VA UPS
+(~600k), dual-NIC + 4G failover (~250k incl. 12 mo data), backup SSD
+(~180k). Off-grid sites: 200W solar + 100Ah battery (~1.8M). National-
+rollout HQ adds: hot-standby DB (Always On), reverse proxy with rate
+limiting, centralised log aggregation.
+
+**Build plan reshuffle.** Module 3 admin extends with Station / PatrolPost /
+Officer-registration / OffenceCode CRUD (Module 3.5). Module 4 splits into
+4a (Station Server), 4b (Sync engine), 4c (Officer MAUI device). Module 6
+deploy adds station-server provisioning scripts.
+
+**Reference doc.** Full sketch with entity diagrams, sync protocol,
+alarm UX and open questions: `docs/architecture-distributed.md`.
+
+---
+
+## 2026-04-27 · D-013 — Module 3.5 reference-data CRUD (HQ-only)
+
+**Context.** D-012 designated HQ as sole writer of reference data. The
+admin portal previously displayed reference data read-only; for the
+distributed architecture to function, HQ admins need full CRUD over
+Station, PatrolPost, OffenceCode and Officer.
+
+**Decision.** Add four CRUD surfaces in the admin portal:
+
+- `/stations` — card grid, modal for create/edit, soft-delete (deactivate)
+  refuses if officers/devices still attached.
+- `/patrolposts` — table, modal for create/edit, station filter, soft-delete.
+- `/offencecodes` — table, modal for create/edit, soft-delete falls back to
+  IsActive=false when the code is referenced by existing fines (preserves
+  referential integrity for historical records).
+- `/officers` — existing list page gains a "＋ Register Officer" button
+  that opens a registration modal (badge, rank, name, contact, department,
+  station). New officers default to `Status=Offline, IsActive=true`.
+
+**RBAC.** All write endpoints require `[Authorize(Roles="Admin")]`;
+reads accept Admin or Supervisor. The `<AuthorizeView Roles="Admin">`
+wrapper hides write buttons from supervisors so they don't see UI they
+can't use.
+
+**Soft-delete semantics.** OffenceCode delete becomes IsActive=false
+when referenced by any fine; Station and PatrolPost delete is always
+soft (IsActive=false) and refuses on attached officers/devices.
+
+**Migration.** A new EF migration adds `Stations`, `PatrolPosts`, `Devices`
+tables plus `Officer.StationId` and `Officer.PrimaryPatrolPostId` foreign
+keys, and seeds 5 stations + 6 patrol posts spanning the 4 demo zones.
+
+**Out of scope for D-013** (deferred to Module 4a):
+- Device pairing UI (mints PairingToken, displays QR, lifecycle).
+- Per-station server endpoint health pings.
+- Reference snapshot version pinning UI (D-012 §9b.3 follow-up).

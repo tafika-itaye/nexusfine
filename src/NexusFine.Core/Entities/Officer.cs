@@ -17,6 +17,12 @@ public class Officer
     public int DepartmentId { get; set; }
     public Department Department { get; set; } = null!;
 
+    // Distributed-arch — see docs/architecture-distributed.md
+    public int? StationId { get; set; }
+    public Station? Station { get; set; }
+    public int? PrimaryPatrolPostId { get; set; }
+    public PatrolPost? PrimaryPatrolPost { get; set; }
+
     public OfficerStatus Status { get; set; } = OfficerStatus.Active;
 
     // Last known GPS position

@@ -1,0 +1,137 @@
+@page "/settings"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthState
+@inject NexusFine.Admin.Services.JwtAuthStateProvider JwtAuth
+
+<PageTitle>Settings — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">System</div>
+    <h1 class="page-title">Settings</h1>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- USER PROFILE -->
+    <div class="panel">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">Your Profile</div>
+                <div class="panel-sub">Identity sourced from JWT — read-only in this build</div>
+            </div>
+        </div>
+        <div style="padding:18px 20px">
+            @if (_user is null)
+            {
+                <div class="loading-state"><div class="spinner"></div><span>Loading profile…</span></div>
+            }
+            else
+            {
+                <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border-mid)">
+                    <div style="width:54px;height:54px;border-radius:50%;background:var(--gold);color:var(--navy-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px">
+                        @Initials(_fullName)
+                    </div>
+                    <div>
+                        <div style="font-size:18px;font-weight:700;color:var(--text-on-dark)">@_fullName</div>
+                        <div style="font-size:12px;color:var(--text-muted-d)" class="mono">@_userName</div>
+                    </div>
+                </div>
+
+                <FieldRow Label="Username" Value="@_userName" Mono="true" />
+                <FieldRow Label="Full name" Value="@_fullName" />
+                <FieldRow Label="Email"     Value="@(_email ?? "—")" />
+                <FieldRow Label="Roles"     Value="@string.Join(", ", _roles)" />
+                @if (!string.IsNullOrEmpty(_officerId))
+                {
+                    <FieldRow Label="Officer record" Value="@_officerId" Mono="true" />
+                }
+            }
+        </div>
+    </div>
+
+    <!-- SESSION -->
+    <div class="panel">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">Session</div>
+                <div class="panel-sub">JWT held in circuit memory — disappears on reload (D-011)</div>
+            </div>
+        </div>
+        <div style="padding:18px 20px">
+            <FieldRow Label="Authenticated" Value="@(_authenticated ? "Yes" : "No")" />
+            <FieldRow Label="Token expires"
+                      Value="@(_expiresAt is null ? "—" : _expiresAt.Value.ToLocalTime().ToString("dd MMM yyyy · HH:mm:ss"))"
+                      Mono="true" />
+            <FieldRow Label="Time remaining" Value="@TimeRemaining()" />
+            <div style="margin-top:18px;display:flex;gap:8px">
+                <a href="logout" class="btn btn-sm btn-ghost">⎋ Sign out</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div class="panel" style="grid-column:1 / -1">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">About NexusFine Admin</div>
+                <div class="panel-sub">Build &amp; environment info</div>
+            </div>
+        </div>
+        <div style="padding:18px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+            <FieldRow Label="Application" Value="NexusFine Admin Portal" />
+            <FieldRow Label="Operator"    Value="Malawi Police Service · DRTSS" />
+            <FieldRow Label="Vendor"      Value="TechNexus MW" />
+            <FieldRow Label="Runtime"     Value=".NET 10 · Blazor Server" Mono="true" />
+            <FieldRow Label="API base"    Value="@_apiBase" Mono="true" />
+            <FieldRow Label="Build"       Value="@_buildLabel" Mono="true" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private ClaimsPrincipal? _user;
+    private string  _userName = "";
+    private string  _fullName = "";
+    private string? _email;
+    private string  _officerId = "";
+    private string[] _roles    = Array.Empty<string>();
+    private bool    _authenticated;
+    private DateTime? _expiresAt;
+    private string  _apiBase     = "http://localhost:5121";
+    private string  _buildLabel  = $"v0.3 · {DateTime.UtcNow:yyyy-MM-dd}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _user = state.User;
+        _authenticated = _user.Identity?.IsAuthenticated ?? false;
+
+        _userName  = _user.Identity?.Name ?? "—";
+        _fullName  = _user.FindFirst("fullName")?.Value ?? _userName;
+        _email     = _user.FindFirst(ClaimTypes.Email)?.Value;
+        _officerId = _user.FindFirst("officerId")?.Value ?? "";
+        _roles     = _user.FindAll(ClaimTypes.Role).Select(c => c.Value).Distinct().ToArray();
+        _expiresAt = JwtAuth.ExpiresAt;
+    }
+
+    private string TimeRemaining()
+    {
+        if (!_expiresAt.HasValue) return "—";
+        var ts = _expiresAt.Value - DateTime.UtcNow;
+        if (ts.TotalSeconds <= 0) return "Expired";
+        if (ts.TotalHours >= 1)   return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+        if (ts.TotalMinutes >= 1) return $"{ts.Minutes}m {ts.Seconds}s";
+        return $"{ts.Seconds}s";
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0]).ToUpperInvariant();
+    }
+}

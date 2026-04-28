@@ -1,0 +1,15 @@
+@*
+    Compact label/value stat block used inside cards (Stations, Departments).
+*@
+
+<div>
+    <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted-d)">@Label</div>
+    <div class="mono fw-700" style="font-size:@(Size)px;color:@(Color)">@Value</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+    [Parameter] public int Size { get; set; } = 18;
+    [Parameter] public string Color { get; set; } = "var(--text-on-dark)";
+}

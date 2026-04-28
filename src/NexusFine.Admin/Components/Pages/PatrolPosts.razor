@@ -1,0 +1,319 @@
+@page "/patrolposts"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Patrol Posts — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Management</div>
+    <h1 class="page-title">Patrol Posts</h1>
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+    <select class="form-input filter-select" style="min-width:240px"
+            @bind="_stationFilter" @bind:after="Reload">
+        <option value="0">All stations</option>
+        @foreach (var s in _stations)
+        {
+            <option value="@s.Id">@s.Name (@s.Code)</option>
+        }
+    </select>
+    <input class="form-input" style="min-width:200px"
+           placeholder="Search code or name…"
+           @bind="_search" @bind:event="oninput" />
+    <AuthorizeView Roles="Admin">
+        <button class="btn btn-sm btn-gold" style="margin-left:auto" @onclick="OpenCreate">＋ Add Patrol Post</button>
+    </AuthorizeView>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">All Patrol Posts</div>
+            <div class="panel-sub">@_posts.Count post@(_posts.Count == 1 ? "" : "s")</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" @onclick="Reload">↻ Refresh</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading patrol posts…</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Station</th>
+                        <th>Zone</th>
+                        <th>Coords</th>
+                        <th>Status</th>
+                        <AuthorizeView Roles="Admin"><Authorized><th></th></Authorized></AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var visible = Filtered(); }
+                    @if (!visible.Any())
+                    {
+                        <tr><td colspan="7" style="text-align:center;color:var(--text-muted-d);padding:32px">No patrol posts match.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in visible)
+                        {
+                            <tr>
+                                <td class="mono fw-700 text-gold">@p.Code</td>
+                                <td>@p.Name</td>
+                                <td style="font-size:12px;color:var(--text-muted-d)">@p.StationName</td>
+                                <td style="font-size:12px;color:var(--text-muted-d)">@p.Zone</td>
+                                <td class="mono" style="font-size:11px;color:var(--text-muted-d)">
+                                    @(p.Lat is null || p.Lng is null ? "—" : $"{p.Lat:F4}, {p.Lng:F4}")
+                                </td>
+                                <td><span class="pill pill-@(p.IsActive ? "active" : "offline")">@(p.IsActive ? "Active" : "Inactive")</span></td>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <td style="white-space:nowrap">
+                                            <button class="btn btn-sm btn-ghost" @onclick="() => OpenEdit(p)">✎</button>
+                                            @if (p.IsActive)
+                                            {
+                                                <button class="btn btn-sm btn-ghost" @onclick="() => Deactivate(p.Id)">⊘</button>
+                                            }
+                                        </td>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_modalOpen)
+{
+    <div class="modal-shade" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-hdr">
+                <div>
+                    <div class="section-eyebrow">@(_isEdit ? "Edit" : "Create")</div>
+                    <div class="modal-title">@(_isEdit ? $"Patrol Post — {_form.Code}" : "New Patrol Post")</div>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">✕</button>
+            </div>
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div class="alert alert-danger" style="margin:12px 18px">⚠ @_modalError</div>
+            }
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Code *</label>
+                        <input class="form-input mono" @bind="_form.Code" placeholder="PP-LIL-018-A" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input class="form-input" @bind="_form.Name" placeholder="Kamuzu Hwy Roundabout" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Station *</label>
+                        <select class="form-input filter-select" @bind="_form.StationId">
+                            <option value="0">— Select —</option>
+                            @foreach (var s in _stations)
+                            {
+                                <option value="@s.Id">@s.Name (@s.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Latitude</label>
+                        <input class="form-input mono" @bind="_form.Lat" placeholder="-13.9626" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Longitude</label>
+                        <input class="form-input mono" @bind="_form.Lng" placeholder="33.7741" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Notes</label>
+                        <input class="form-input" @bind="_form.Notes" placeholder="Optional — known hot spot, hours, etc." />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-on-dark);font-size:13px">
+                            <input type="checkbox" @bind="_form.IsActive" />
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-sm btn-gold" @onclick="Save" disabled="@_saving">
+                    @(_saving ? "Saving…" : (_isEdit ? "Save changes" : "Create patrol post"))
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private List<PostDto>    _posts    = new();
+    private List<StationRef> _stations = new();
+    private int    _stationFilter;
+    private string _search = "";
+
+    private bool _modalOpen, _isEdit, _saving;
+    private string? _modalError;
+    private int _editId;
+    private PostForm _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStations();
+        await Reload();
+    }
+
+    private async Task LoadStations()
+    {
+        try
+        {
+            _stations = await Http.GetFromJsonAsync<List<StationRef>>("api/stations?activeOnly=true") ?? new();
+        }
+        catch { /* page can still render */ }
+    }
+
+    private async Task Reload()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = _stationFilter == 0 ? "api/patrolposts" : $"api/patrolposts?stationId={_stationFilter}";
+            _posts = await Http.GetFromJsonAsync<List<PostDto>>(url) ?? new();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private List<PostDto> Filtered()
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return _posts;
+        var s = _search.Trim();
+        return _posts.Where(x =>
+            x.Code.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+            x.Name.Contains(s, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private void OpenCreate()
+    {
+        _isEdit = false; _editId = 0;
+        _form = new PostForm
+        {
+            IsActive = true,
+            StationId = _stationFilter == 0 ? 0 : _stationFilter
+        };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void OpenEdit(PostDto p)
+    {
+        _isEdit = true; _editId = p.Id;
+        _form = new PostForm
+        {
+            Code      = p.Code,
+            Name      = p.Name,
+            StationId = p.StationId,
+            Lat       = p.Lat?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Lng       = p.Lng?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Notes     = p.Notes,
+            IsActive  = p.IsActive
+        };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _saving = false; }
+
+    private async Task Save()
+    {
+        _modalError = null;
+        if (string.IsNullOrWhiteSpace(_form.Code) ||
+            string.IsNullOrWhiteSpace(_form.Name) ||
+            _form.StationId == 0)
+        {
+            _modalError = "Code, Name and Station are required.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                code      = _form.Code.Trim(),
+                name      = _form.Name.Trim(),
+                stationId = _form.StationId,
+                lat       = TryParseDecimal(_form.Lat),
+                lng       = TryParseDecimal(_form.Lng),
+                notes     = _form.Notes?.Trim(),
+                isActive  = _form.IsActive
+            };
+
+            var resp = _isEdit
+                ? await Http.PutAsJsonAsync($"api/patrolposts/{_editId}", payload)
+                : await Http.PostAsJsonAsync("api/patrolposts", payload);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _modalError = problem?.message ?? $"Save failed ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            _modalOpen = false;
+            await Reload();
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private async Task Deactivate(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/patrolposts/{id}");
+            if (resp.IsSuccessStatusCode) await Reload();
+            else _error = $"Deactivate failed ({(int)resp.StatusCode}).";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private static decimal? TryParseDecimal(string? s) =>
+        decimal.TryParse(s, System.Globalization.NumberStyles.Any,
+                         System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+
+    record PostDto(int Id, string Code, string Name, int StationId, string StationCode, string StationName,
+                   string Zone, decimal? Lat, decimal? Lng, string? Notes, bool IsActive);
+    record StationRef(int Id, string Code, string Name);
+    record ErrorPayload(string? message);
+
+    class PostForm
+    {
+        public string  Code      { get; set; } = "";
+        public string  Name      { get; set; } = "";
+        public int     StationId { get; set; }
+        public string? Lat       { get; set; }
+        public string? Lng       { get; set; }
+        public string? Notes     { get; set; }
+        public bool    IsActive  { get; set; } = true;
+    }
+}

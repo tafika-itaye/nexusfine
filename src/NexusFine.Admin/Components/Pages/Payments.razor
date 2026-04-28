@@ -1,0 +1,208 @@
+@page "/payments"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Payments — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Operations</div>
+    <h1 class="page-title">Payments</h1>
+</div>
+
+<!-- FILTERS -->
+<div class="panel" style="padding:16px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
+        <div class="form-group" style="margin:0">
+            <label class="form-label">Channel</label>
+            <select class="form-input filter-select" @bind="_channel" @bind:after="LoadPage1">
+                <option value="">All channels</option>
+                <option value="AirtelMoney">Airtel Money</option>
+                <option value="TnmMpamba">TNM Mpamba</option>
+                <option value="BankTransfer">Bank Transfer</option>
+                <option value="Card">Card</option>
+                <option value="Ussd">USSD</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Cash">Cash</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">Status</label>
+            <select class="form-input filter-select" @bind="_status" @bind:after="LoadPage1">
+                <option value="">All statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+                <option value="Failed">Failed</option>
+                <option value="Reversed">Reversed</option>
+                <option value="TimedOut">Timed Out</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">From</label>
+            <input type="date" class="form-input" @bind="_from" @bind:after="LoadPage1" />
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">To</label>
+            <input type="date" class="form-input" @bind="_to" @bind:after="LoadPage1" />
+        </div>
+        <div class="form-group" style="margin:0">
+            <label class="form-label">Search</label>
+            <input class="form-input" placeholder="Receipt / phone / plate / fine"
+                   @bind="_q" @bind:event="oninput" @onkeyup="OnSearchKey" />
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-sm btn-primary" @onclick="LoadPage1">Apply</button>
+            <button class="btn btn-sm btn-ghost" @onclick="ClearFilters">Reset</button>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">All Payments</div>
+            <div class="panel-sub">@_total.ToString("N0") payment@(_total == 1 ? "" : "s") — page @_page of @_totalPages</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" @onclick="LoadPage1">↻ Refresh</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading payments…</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Receipt</th>
+                        <th>Fine Ref</th>
+                        <th>Plate</th>
+                        <th>Channel</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Phone</th>
+                        <th>Initiated</th>
+                        <th>Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_items.Any())
+                    {
+                        <tr><td colspan="9" style="text-align:center;color:var(--text-muted-d);padding:32px">No payments match the current filters.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in _items)
+                        {
+                            <tr>
+                                <td class="mono text-gold">@p.ReceiptNumber</td>
+                                <td class="mono">@p.FineReference</td>
+                                <td class="mono fw-700">@p.PlateNumber</td>
+                                <td><span class="pill">@ChannelLabel(p.Channel)</span></td>
+                                <td class="mono fw-700">MK @p.Amount.ToString("N0")</td>
+                                <td><span class="pill pill-@p.Status.ToLower()">@p.Status</span></td>
+                                <td style="font-size:12px;color:var(--text-muted-d)">@(p.PhoneNumber ?? "—")</td>
+                                <td style="font-size:11px;color:var(--text-muted-d)">@p.InitiatedAt.ToLocalTime().ToString("dd MMM · HH:mm")</td>
+                                <td style="font-size:11px;color:var(--text-muted-d)">@(p.CompletedAt?.ToLocalTime().ToString("dd MMM · HH:mm") ?? "—")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (_totalPages > 1)
+        {
+            <div style="display:flex;gap:8px;justify-content:flex-end;padding:16px;align-items:center">
+                <button class="btn btn-sm btn-ghost" disabled="@(_page <= 1)" @onclick="() => GoPage(_page - 1)">← Prev</button>
+                <span style="font-size:12px;color:var(--text-muted-d)">Page @_page / @_totalPages</span>
+                <button class="btn btn-sm btn-ghost" disabled="@(_page >= _totalPages)" @onclick="() => GoPage(_page + 1)">Next →</button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private List<PaymentDto> _items = new();
+    private int _total, _page = 1, _pageSize = 25, _totalPages = 1;
+
+    private string  _channel = "";
+    private string  _status  = "";
+    private DateTime? _from;
+    private DateTime? _to;
+    private string  _q = "";
+
+    protected override async Task OnInitializedAsync() => await LoadPage1();
+
+    private async Task LoadPage1() { _page = 1; await Load(); }
+    private async Task GoPage(int p) { _page = p; await Load(); }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadPage1();
+    }
+
+    private void ClearFilters()
+    {
+        _channel = ""; _status = ""; _from = null; _to = null; _q = "";
+        _ = LoadPage1();
+    }
+
+    private async Task Load()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var qs = new List<string> { $"page={_page}", $"pageSize={_pageSize}" };
+            if (!string.IsNullOrEmpty(_channel)) qs.Add($"channel={_channel}");
+            if (!string.IsNullOrEmpty(_status))  qs.Add($"status={_status}");
+            if (_from.HasValue) qs.Add($"from={_from:yyyy-MM-dd}");
+            if (_to.HasValue)   qs.Add($"to={_to:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(_q)) qs.Add($"q={Uri.EscapeDataString(_q)}");
+
+            var url    = "api/payments?" + string.Join("&", qs);
+            var result = await Http.GetFromJsonAsync<PageResult>(url);
+            _items     = result?.Items ?? new();
+            _total     = result?.Total ?? 0;
+            _totalPages = Math.Max(1, (int)Math.Ceiling((double)_total / _pageSize));
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private static string ChannelLabel(string raw) => raw switch
+    {
+        "AirtelMoney"  => "Airtel Money",
+        "TnmMpamba"    => "TNM Mpamba",
+        "BankTransfer" => "Bank",
+        "Card"         => "Card",
+        "Ussd"         => "USSD",
+        "WhatsApp"     => "WhatsApp",
+        "Cash"         => "Cash",
+        _              => raw
+    };
+
+    record PaymentDto(
+        int       Id,
+        string    ReceiptNumber,
+        string    FineReference,
+        string    PlateNumber,
+        decimal   Amount,
+        string    Channel,
+        string    Status,
+        string?   PhoneNumber,
+        string?   TransactionReference,
+        DateTime  InitiatedAt,
+        DateTime? CompletedAt
+    );
+
+    record PageResult(int Total, int Page, int PageSize, List<PaymentDto> Items);
+}

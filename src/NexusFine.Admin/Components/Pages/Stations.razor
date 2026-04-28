@@ -1,0 +1,401 @@
+@page "/stations"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Stations — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Management</div>
+    <h1 class="page-title">Stations</h1>
+</div>
+
+<!-- TOOLBAR -->
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+    @foreach (var z in _zones)
+    {
+        <button class="btn btn-sm @(_zoneFilter == z ? "btn-primary" : "btn-ghost")"
+                @onclick="() => SetZone(z)">@z</button>
+    }
+    <input class="form-input" style="margin-left:auto;min-width:220px"
+           placeholder="Search code or name…"
+           @bind="_search" @bind:event="oninput" />
+    <AuthorizeView Roles="Admin">
+        <button class="btn btn-sm btn-gold" @onclick="OpenCreate">＋ Add Station</button>
+    </AuthorizeView>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Loading stations…</span></div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">⚠ @_error</div>
+}
+else
+{
+    var visible = Filtered();
+
+    if (!visible.Any())
+    {
+        <div class="panel" style="padding:48px;text-align:center;color:var(--text-muted-d)">
+            No stations match the current filters.
+        </div>
+    }
+    else
+    {
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+            @foreach (var s in visible)
+            {
+                <div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                        <div style="min-width:0">
+                            <div class="section-eyebrow" style="margin-bottom:4px">@s.Zone · @s.DepartmentName</div>
+                            <div style="font-size:16px;font-weight:700;color:var(--text-on-dark)">@s.Name</div>
+                            <div class="mono" style="font-size:11px;color:var(--gold-bright);margin-top:2px">@s.Code</div>
+                        </div>
+                        <span class="pill pill-@(s.IsActive ? "active" : "offline")">
+                            @(s.IsActive ? "Active" : "Offline")
+                        </span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(s.PhysicalAddress))
+                    {
+                        <div style="font-size:12px;color:var(--text-muted-d)">📍 @s.PhysicalAddress</div>
+                    }
+                    @if (!string.IsNullOrEmpty(s.OfficerInChargeBadge))
+                    {
+                        <div style="font-size:12px;color:var(--text-muted-d)">
+                            OIC: <span class="mono fw-700" style="color:var(--gold-bright)">#@s.OfficerInChargeBadge</span>
+                        </div>
+                    }
+
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:10px;border-top:1px solid var(--border-mid)">
+                        <Stat Label="Officers"     Value="@s.OfficerCount.ToString()" />
+                        <Stat Label="Patrol Posts" Value="@s.PatrolPostCount.ToString()" />
+                        <Stat Label="Devices"      Value="@s.DeviceCount.ToString()" />
+                    </div>
+
+                    <div style="padding-top:10px;border-top:1px solid var(--border-mid);font-size:11px;color:var(--text-muted-d)">
+                        @if (string.IsNullOrEmpty(s.StationServerEndpoint))
+                        {
+                            <span>No station server configured</span>
+                        }
+                        else
+                        {
+                            <span>🛰 @s.StationServerEndpoint</span>
+                            <br />
+                            <span>Last sync: @(s.LastSyncAt?.ToLocalTime().ToString("dd MMM · HH:mm") ?? "—")</span>
+                            @if (s.ConsecutiveFailedSyncs > 0)
+                            {
+                                <span style="color:var(--red-bright);margin-left:8px">⚠ @s.ConsecutiveFailedSyncs failed</span>
+                            }
+                        }
+                    </div>
+
+                    <AuthorizeView Roles="Admin">
+                        <div style="display:flex;gap:6px;margin-top:6px">
+                            <button class="btn btn-sm btn-ghost" @onclick="() => OpenEdit(s)">✎ Edit</button>
+                            @if (s.IsActive)
+                            {
+                                <button class="btn btn-sm btn-ghost" @onclick="() => Deactivate(s.Id)">⊘ Deactivate</button>
+                            }
+                        </div>
+                    </AuthorizeView>
+                </div>
+            }
+        </div>
+    }
+}
+
+<!-- CREATE / EDIT MODAL -->
+@if (_modalOpen)
+{
+    <div class="modal-shade" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-hdr">
+                <div>
+                    <div class="section-eyebrow">@(_isEdit ? "Edit" : "Create")</div>
+                    <div class="modal-title">@(_isEdit ? $"Station — {_form.Code}" : "New Station")</div>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">✕</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div class="alert alert-danger" style="margin:12px 18px">⚠ @_modalError</div>
+            }
+
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Code *</label>
+                        <input class="form-input mono" @bind="_form.Code" placeholder="STN-LIL-003" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input class="form-input" @bind="_form.Name" placeholder="Kawale Police Station" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Department *</label>
+                        <select class="form-input filter-select" @bind="_form.DepartmentId">
+                            <option value="0">— Select —</option>
+                            @foreach (var d in _departments)
+                            {
+                                <option value="@d.Id">@d.Name (@d.Zone)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zone</label>
+                        <input class="form-input" @bind="_form.Zone" placeholder="(defaults to department zone)" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Physical address</label>
+                        <input class="form-input" @bind="_form.PhysicalAddress" placeholder="e.g. Kawale, Lilongwe" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact phone</label>
+                        <input class="form-input mono" @bind="_form.ContactPhone" placeholder="+265 1 ..." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Officer-in-charge badge</label>
+                        <input class="form-input mono" @bind="_form.OfficerInChargeBadge" placeholder="MPS-1042" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Latitude</label>
+                        <input class="form-input mono" @bind="_form.Lat" placeholder="-13.9626" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Longitude</label>
+                        <input class="form-input mono" @bind="_form.Lng" placeholder="33.7741" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Station server endpoint</label>
+                        <input class="form-input mono" @bind="_form.StationServerEndpoint" placeholder="https://stn-lil-003.local:5121" />
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-on-dark);font-size:13px">
+                            <input type="checkbox" @bind="_form.IsActive" />
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-foot">
+                <button class="btn btn-sm btn-ghost" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-sm btn-gold" @onclick="Save" disabled="@_saving">
+                    @(_saving ? "Saving…" : (_isEdit ? "Save changes" : "Create station"))
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private List<StationDto> _stations = new();
+    private List<DeptDto>    _departments = new();
+
+    private string  _zoneFilter = "All";
+    private string  _search     = "";
+
+    private static readonly string[] _zones = { "All", "Lilongwe", "Blantyre", "Mzuzu", "Zomba" };
+
+    // modal
+    private bool   _modalOpen;
+    private bool   _isEdit;
+    private bool   _saving;
+    private string? _modalError;
+    private int    _editId;
+    private StationForm _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDepartments();
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            _stations = await Http.GetFromJsonAsync<List<StationDto>>("api/stations") ?? new();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task LoadDepartments()
+    {
+        try
+        {
+            _departments = await Http.GetFromJsonAsync<List<DeptDto>>("api/departments") ?? new();
+        }
+        catch { /* stations page can still render */ }
+    }
+
+    private List<StationDto> Filtered()
+    {
+        IEnumerable<StationDto> q = _stations;
+        if (_zoneFilter != "All") q = q.Where(s => s.Zone == _zoneFilter);
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var s = _search.Trim();
+            q = q.Where(x =>
+                x.Code.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                x.Name.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+        return q.ToList();
+    }
+
+    private void SetZone(string z) { _zoneFilter = z; }
+
+    // ── modal helpers ──
+    private void OpenCreate()
+    {
+        _isEdit = false;
+        _editId = 0;
+        _form = new StationForm { IsActive = true };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void OpenEdit(StationDto s)
+    {
+        _isEdit = true;
+        _editId = s.Id;
+        _form = new StationForm
+        {
+            Code                  = s.Code,
+            Name                  = s.Name,
+            DepartmentId          = s.DepartmentId,
+            Zone                  = s.Zone,
+            PhysicalAddress       = s.PhysicalAddress,
+            ContactPhone          = s.ContactPhone,
+            OfficerInChargeBadge  = s.OfficerInChargeBadge,
+            StationServerEndpoint = s.StationServerEndpoint,
+            Lat                   = s.Lat?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Lng                   = s.Lng?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            IsActive              = s.IsActive
+        };
+        _modalError = null;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _saving = false; }
+
+    private async Task Save()
+    {
+        _modalError = null;
+        if (string.IsNullOrWhiteSpace(_form.Code) ||
+            string.IsNullOrWhiteSpace(_form.Name) ||
+            _form.DepartmentId == 0)
+        {
+            _modalError = "Code, Name and Department are required.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            decimal? lat = TryParseDecimal(_form.Lat);
+            decimal? lng = TryParseDecimal(_form.Lng);
+
+            var payload = new
+            {
+                code                  = _form.Code.Trim(),
+                name                  = _form.Name.Trim(),
+                departmentId          = _form.DepartmentId,
+                zone                  = string.IsNullOrWhiteSpace(_form.Zone) ? null : _form.Zone.Trim(),
+                physicalAddress       = _form.PhysicalAddress?.Trim(),
+                contactPhone          = _form.ContactPhone?.Trim(),
+                officerInChargeBadge  = _form.OfficerInChargeBadge?.Trim(),
+                stationServerEndpoint = _form.StationServerEndpoint?.Trim(),
+                lat,
+                lng,
+                isActive              = _form.IsActive
+            };
+
+            var resp = _isEdit
+                ? await Http.PutAsJsonAsync($"api/stations/{_editId}", payload)
+                : await Http.PostAsJsonAsync("api/stations", payload);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _modalError = problem?.message ?? $"Save failed ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            _modalOpen = false;
+            await Reload();
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private async Task Deactivate(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/stations/{id}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                var problem = await resp.Content.ReadFromJsonAsync<ErrorPayload>();
+                _error = problem?.message ?? $"Deactivate failed ({(int)resp.StatusCode}).";
+                return;
+            }
+            await Reload();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private static decimal? TryParseDecimal(string? s) =>
+        decimal.TryParse(s, System.Globalization.NumberStyles.Any,
+                         System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+
+    // ── DTOs ──
+    record StationDto(
+        int     Id,
+        string  Code,
+        string  Name,
+        int     DepartmentId,
+        string  DepartmentName,
+        string  Zone,
+        string  PhysicalAddress,
+        string? ContactPhone,
+        string? OfficerInChargeBadge,
+        string? StationServerEndpoint,
+        DateTime? LastSyncAt,
+        int     ConsecutiveFailedSyncs,
+        decimal? Lat,
+        decimal? Lng,
+        bool    IsActive,
+        int     OfficerCount,
+        int     PatrolPostCount,
+        int     DeviceCount
+    );
+
+    record DeptDto(int Id, string Name, string Zone);
+    record ErrorPayload(string? message);
+
+    class StationForm
+    {
+        public string  Code                  { get; set; } = "";
+        public string  Name                  { get; set; } = "";
+        public int     DepartmentId          { get; set; }
+        public string  Zone                  { get; set; } = "";
+        public string? PhysicalAddress       { get; set; }
+        public string? ContactPhone          { get; set; }
+        public string? OfficerInChargeBadge  { get; set; }
+        public string? StationServerEndpoint { get; set; }
+        public string? Lat                   { get; set; }   // bound as text so a blank is allowed
+        public string? Lng                   { get; set; }
+        public bool    IsActive              { get; set; } = true;
+    }
+}

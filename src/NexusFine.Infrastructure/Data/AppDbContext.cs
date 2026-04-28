@@ -17,6 +17,11 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
 
+    // Distributed-arch
+    public DbSet<Station>     Stations     => Set<Station>();
+    public DbSet<PatrolPost>  PatrolPosts  => Set<PatrolPost>();
+    public DbSet<Device>      Devices      => Set<Device>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -108,6 +113,89 @@ public class AppDbContext : DbContext
              .WithMany(d => d.Officers)
              .HasForeignKey(o => o.DepartmentId)
              .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(o => o.Station)
+             .WithMany(s => s.Officers)
+             .HasForeignKey(o => o.StationId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(o => o.PrimaryPatrolPost)
+             .WithMany()
+             .HasForeignKey(o => o.PrimaryPatrolPostId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── STATION ──
+        mb.Entity<Station>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.Code).IsUnique();
+            e.HasIndex(s => s.Zone);
+
+            e.Property(s => s.Code).HasMaxLength(20).IsRequired();
+            e.Property(s => s.Name).HasMaxLength(120).IsRequired();
+            e.Property(s => s.Zone).HasMaxLength(60).IsRequired();
+            e.Property(s => s.PhysicalAddress).HasMaxLength(255);
+            e.Property(s => s.ContactPhone).HasMaxLength(20);
+            e.Property(s => s.OfficerInChargeBadge).HasMaxLength(15);
+            e.Property(s => s.StationServerEndpoint).HasMaxLength(255);
+            e.Property(s => s.StationServerPublicKey).HasMaxLength(2048);
+            e.Property(s => s.Lat).HasColumnType("decimal(9,6)");
+            e.Property(s => s.Lng).HasColumnType("decimal(9,6)");
+
+            e.HasOne(s => s.Department)
+             .WithMany(d => d.Stations)
+             .HasForeignKey(s => s.DepartmentId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ── PATROL POST ──
+        mb.Entity<PatrolPost>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.Code).IsUnique();
+            e.HasIndex(p => p.StationId);
+
+            e.Property(p => p.Code).HasMaxLength(20).IsRequired();
+            e.Property(p => p.Name).HasMaxLength(120).IsRequired();
+            e.Property(p => p.Notes).HasMaxLength(500);
+            e.Property(p => p.Lat).HasColumnType("decimal(9,6)");
+            e.Property(p => p.Lng).HasColumnType("decimal(9,6)");
+
+            // Restrict (was Cascade) to avoid the multi-cascade-path conflict
+            // with Officer.StationId / Officer.PrimaryPatrolPostId on Station deletion.
+            // We soft-delete stations anyway, so the cascade was never going to fire
+            // operationally; this just satisfies SQL Server's static analysis.
+            e.HasOne(p => p.Station)
+             .WithMany(s => s.PatrolPosts)
+             .HasForeignKey(p => p.StationId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ── DEVICE ──
+        mb.Entity<Device>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.Serial).IsUnique();
+            e.HasIndex(d => d.StationId);
+            e.HasIndex(d => d.Status);
+
+            e.Property(d => d.Serial).HasMaxLength(60).IsRequired();
+            e.Property(d => d.Imei).HasMaxLength(20);
+            e.Property(d => d.Model).HasMaxLength(80);
+            e.Property(d => d.AppVersion).HasMaxLength(20);
+            e.Property(d => d.RevokedReason).HasMaxLength(255);
+            e.Property(d => d.Status).HasConversion<string>();
+
+            e.HasOne(d => d.Station)
+             .WithMany(s => s.Devices)
+             .HasForeignKey(d => d.StationId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(d => d.CurrentOfficer)
+             .WithMany()
+             .HasForeignKey(d => d.CurrentOfficerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ── OFFENCE CODE ──
@@ -125,8 +213,11 @@ public class AppDbContext : DbContext
         mb.Entity<Department>(e =>
         {
             e.HasKey(d => d.Id);
+            e.HasIndex(d => d.Region);
             e.Property(d => d.Name).HasMaxLength(100).IsRequired();
             e.Property(d => d.Zone).HasMaxLength(60).IsRequired();
+            e.Property(d => d.Region).HasMaxLength(30).IsRequired();
+            e.Property(d => d.HeadOfficerBadge).HasMaxLength(15);
         });
 
         // ── APPEAL ──
@@ -173,11 +264,98 @@ public class AppDbContext : DbContext
         });
 
         // ── SEED DATA ──
+        // 28 Departments — one per Malawi district, grouped into the
+        // three administrative regions (Northern, Central, Southern).
+        // Existing IDs 1-4 preserved (they back the demo fines/payments seed).
         mb.Entity<Department>().HasData(
-            new Department { Id = 1, Name = "Lilongwe Traffic",  Zone = "Lilongwe", IsActive = true },
-            new Department { Id = 2, Name = "Blantyre Traffic",  Zone = "Blantyre",  IsActive = true },
-            new Department { Id = 3, Name = "Mzuzu Traffic",     Zone = "Mzuzu",     IsActive = true },
-            new Department { Id = 4, Name = "Zomba Traffic",     Zone = "Zomba",     IsActive = true }
+            // Central
+            new Department { Id = 1,  Name = "Lilongwe Traffic",   Zone = "Lilongwe",   Region = "Central",  IsActive = true },
+            // Southern
+            new Department { Id = 2,  Name = "Blantyre Traffic",   Zone = "Blantyre",   Region = "Southern", IsActive = true },
+            // Northern (Mzuzu city sits in Mzimba district)
+            new Department { Id = 3,  Name = "Mzuzu Traffic",      Zone = "Mzimba",     Region = "Northern", IsActive = true },
+            // Southern
+            new Department { Id = 4,  Name = "Zomba Traffic",      Zone = "Zomba",      Region = "Southern", IsActive = true },
+
+            // Northern region (5 more)
+            new Department { Id = 5,  Name = "Chitipa Traffic",    Zone = "Chitipa",    Region = "Northern", IsActive = true },
+            new Department { Id = 6,  Name = "Karonga Traffic",    Zone = "Karonga",    Region = "Northern", IsActive = true },
+            new Department { Id = 7,  Name = "Likoma Traffic",     Zone = "Likoma",     Region = "Northern", IsActive = true },
+            new Department { Id = 8,  Name = "Nkhata Bay Traffic", Zone = "Nkhata Bay", Region = "Northern", IsActive = true },
+            new Department { Id = 9,  Name = "Rumphi Traffic",     Zone = "Rumphi",     Region = "Northern", IsActive = true },
+
+            // Central region (8 more)
+            new Department { Id = 10, Name = "Dedza Traffic",      Zone = "Dedza",      Region = "Central",  IsActive = true },
+            new Department { Id = 11, Name = "Dowa Traffic",       Zone = "Dowa",       Region = "Central",  IsActive = true },
+            new Department { Id = 12, Name = "Kasungu Traffic",    Zone = "Kasungu",    Region = "Central",  IsActive = true },
+            new Department { Id = 13, Name = "Mchinji Traffic",    Zone = "Mchinji",    Region = "Central",  IsActive = true },
+            new Department { Id = 14, Name = "Nkhotakota Traffic", Zone = "Nkhotakota", Region = "Central",  IsActive = true },
+            new Department { Id = 15, Name = "Ntcheu Traffic",     Zone = "Ntcheu",     Region = "Central",  IsActive = true },
+            new Department { Id = 16, Name = "Ntchisi Traffic",    Zone = "Ntchisi",    Region = "Central",  IsActive = true },
+            new Department { Id = 17, Name = "Salima Traffic",     Zone = "Salima",     Region = "Central",  IsActive = true },
+
+            // Southern region (11 more)
+            new Department { Id = 18, Name = "Balaka Traffic",     Zone = "Balaka",     Region = "Southern", IsActive = true },
+            new Department { Id = 19, Name = "Chikwawa Traffic",   Zone = "Chikwawa",   Region = "Southern", IsActive = true },
+            new Department { Id = 20, Name = "Chiradzulu Traffic", Zone = "Chiradzulu", Region = "Southern", IsActive = true },
+            new Department { Id = 21, Name = "Machinga Traffic",   Zone = "Machinga",   Region = "Southern", IsActive = true },
+            new Department { Id = 22, Name = "Mangochi Traffic",   Zone = "Mangochi",   Region = "Southern", IsActive = true },
+            new Department { Id = 23, Name = "Mulanje Traffic",    Zone = "Mulanje",    Region = "Southern", IsActive = true },
+            new Department { Id = 24, Name = "Mwanza Traffic",     Zone = "Mwanza",     Region = "Southern", IsActive = true },
+            new Department { Id = 25, Name = "Neno Traffic",       Zone = "Neno",       Region = "Southern", IsActive = true },
+            new Department { Id = 26, Name = "Nsanje Traffic",     Zone = "Nsanje",     Region = "Southern", IsActive = true },
+            new Department { Id = 27, Name = "Phalombe Traffic",   Zone = "Phalombe",   Region = "Southern", IsActive = true },
+            new Department { Id = 28, Name = "Thyolo Traffic",     Zone = "Thyolo",     Region = "Southern", IsActive = true }
+        );
+
+        // Stations — one main police station per district (28 total)
+        // existing 5 IDs preserved; 24 new ones added for the new districts.
+        var seedDate = new DateTime(2026, 1, 1);
+        mb.Entity<Station>().HasData(
+            new Station { Id = 1,  Code = "STN-LIL-001", Name = "Area 18 Police Station",       DepartmentId = 1,  Zone = "Lilongwe",   PhysicalAddress = "Area 18, Lilongwe",       ContactPhone = "+265 1 750 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 2,  Code = "STN-LIL-002", Name = "Kamuzu Highway Checkpoint",    DepartmentId = 1,  Zone = "Lilongwe",   PhysicalAddress = "M1 Kamuzu Highway, North", ContactPhone = "+265 1 750 200", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 3,  Code = "STN-BLT-001", Name = "Limbe Police Station",         DepartmentId = 2,  Zone = "Blantyre",   PhysicalAddress = "Limbe, Blantyre",          ContactPhone = "+265 1 840 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 4,  Code = "STN-MZU-001", Name = "Mzuzu Central Police Station", DepartmentId = 3,  Zone = "Mzimba",     PhysicalAddress = "Mzuzu CBD",                ContactPhone = "+265 1 332 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 5,  Code = "STN-ZBA-001", Name = "Zomba Police Station",         DepartmentId = 4,  Zone = "Zomba",      PhysicalAddress = "Zomba CBD",                ContactPhone = "+265 1 525 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+
+            // Northern (5 new)
+            new Station { Id = 6,  Code = "STN-CHI-001", Name = "Chitipa Police Station",       DepartmentId = 5,  Zone = "Chitipa",    PhysicalAddress = "Chitipa Boma",             ContactPhone = "+265 1 382 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 7,  Code = "STN-KAR-001", Name = "Karonga Police Station",       DepartmentId = 6,  Zone = "Karonga",    PhysicalAddress = "Karonga Boma",             ContactPhone = "+265 1 362 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 8,  Code = "STN-LIK-001", Name = "Likoma Island Police Post",    DepartmentId = 7,  Zone = "Likoma",     PhysicalAddress = "Chizumulu Harbour",        ContactPhone = "+265 1 374 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 9,  Code = "STN-NKB-001", Name = "Nkhata Bay Police Station",    DepartmentId = 8,  Zone = "Nkhata Bay", PhysicalAddress = "Nkhata Bay Boma",          ContactPhone = "+265 1 352 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 10, Code = "STN-RUM-001", Name = "Rumphi Police Station",        DepartmentId = 9,  Zone = "Rumphi",     PhysicalAddress = "Rumphi Boma",              ContactPhone = "+265 1 372 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+
+            // Central (8 new)
+            new Station { Id = 11, Code = "STN-DED-001", Name = "Dedza Police Station",         DepartmentId = 10, Zone = "Dedza",      PhysicalAddress = "Dedza Boma, M1",           ContactPhone = "+265 1 223 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 12, Code = "STN-DOW-001", Name = "Dowa Police Station",          DepartmentId = 11, Zone = "Dowa",       PhysicalAddress = "Dowa Boma",                ContactPhone = "+265 1 282 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 13, Code = "STN-KAS-001", Name = "Kasungu Police Station",       DepartmentId = 12, Zone = "Kasungu",    PhysicalAddress = "Kasungu Boma",             ContactPhone = "+265 1 253 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 14, Code = "STN-MCH-001", Name = "Mchinji Border Police Station",DepartmentId = 13, Zone = "Mchinji",    PhysicalAddress = "Mchinji Border (Zambia)",  ContactPhone = "+265 1 242 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 15, Code = "STN-NKK-001", Name = "Nkhotakota Police Station",    DepartmentId = 14, Zone = "Nkhotakota", PhysicalAddress = "Nkhotakota Boma",          ContactPhone = "+265 1 292 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 16, Code = "STN-NTC-001", Name = "Ntcheu Police Station",        DepartmentId = 15, Zone = "Ntcheu",     PhysicalAddress = "Ntcheu Boma, M1",          ContactPhone = "+265 1 235 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 17, Code = "STN-NTI-001", Name = "Ntchisi Police Station",       DepartmentId = 16, Zone = "Ntchisi",    PhysicalAddress = "Ntchisi Boma",             ContactPhone = "+265 1 295 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 18, Code = "STN-SAL-001", Name = "Salima Police Station",        DepartmentId = 17, Zone = "Salima",     PhysicalAddress = "Salima Boma",              ContactPhone = "+265 1 263 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+
+            // Southern (11 new)
+            new Station { Id = 19, Code = "STN-BAL-001", Name = "Balaka Police Station",        DepartmentId = 18, Zone = "Balaka",     PhysicalAddress = "Balaka Boma",              ContactPhone = "+265 1 552 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 20, Code = "STN-CHK-001", Name = "Chikwawa Police Station",      DepartmentId = 19, Zone = "Chikwawa",   PhysicalAddress = "Chikwawa Boma",            ContactPhone = "+265 1 422 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 21, Code = "STN-CHZ-001", Name = "Chiradzulu Police Station",    DepartmentId = 20, Zone = "Chiradzulu", PhysicalAddress = "Chiradzulu Boma",          ContactPhone = "+265 1 462 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 22, Code = "STN-MAC-001", Name = "Machinga Police Station",      DepartmentId = 21, Zone = "Machinga",   PhysicalAddress = "Liwonde Boma",             ContactPhone = "+265 1 535 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 23, Code = "STN-MAN-001", Name = "Mangochi Police Station",      DepartmentId = 22, Zone = "Mangochi",   PhysicalAddress = "Mangochi Boma",            ContactPhone = "+265 1 584 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 24, Code = "STN-MUL-001", Name = "Mulanje Police Station",       DepartmentId = 23, Zone = "Mulanje",    PhysicalAddress = "Mulanje Boma",             ContactPhone = "+265 1 466 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 25, Code = "STN-MWA-001", Name = "Mwanza Border Police Station", DepartmentId = 24, Zone = "Mwanza",     PhysicalAddress = "Mwanza Border (Mozambique)",ContactPhone = "+265 1 432 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 26, Code = "STN-NEN-001", Name = "Neno Police Station",          DepartmentId = 25, Zone = "Neno",       PhysicalAddress = "Neno Boma",                ContactPhone = "+265 1 433 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 27, Code = "STN-NSA-001", Name = "Nsanje Police Station",        DepartmentId = 26, Zone = "Nsanje",     PhysicalAddress = "Nsanje Boma",              ContactPhone = "+265 1 451 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 28, Code = "STN-PHA-001", Name = "Phalombe Police Station",      DepartmentId = 27, Zone = "Phalombe",   PhysicalAddress = "Phalombe Boma",            ContactPhone = "+265 1 467 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Station { Id = 29, Code = "STN-THY-001", Name = "Thyolo Police Station",        DepartmentId = 28, Zone = "Thyolo",     PhysicalAddress = "Thyolo Boma",              ContactPhone = "+265 1 473 100", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+        );
+
+        mb.Entity<PatrolPost>().HasData(
+            new PatrolPost { Id = 1, Code = "PP-LIL-018-A", Name = "Kamuzu Hwy North",        StationId = 2, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) },
+            new PatrolPost { Id = 2, Code = "PP-LIL-018-B", Name = "Kamuzu Hwy South",        StationId = 2, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) },
+            new PatrolPost { Id = 3, Code = "PP-LIL-001-A", Name = "Area 18 Roundabout",      StationId = 1, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) },
+            new PatrolPost { Id = 4, Code = "PP-BLT-001-A", Name = "Limbe Market Junction",   StationId = 3, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) },
+            new PatrolPost { Id = 5, Code = "PP-MZU-001-A", Name = "Mzuzu Bus Depot",         StationId = 4, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) },
+            new PatrolPost { Id = 6, Code = "PP-ZBA-001-A", Name = "Zomba M3 Junction",       StationId = 5, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) }
         );
 
         mb.Entity<OffenceCode>().HasData(

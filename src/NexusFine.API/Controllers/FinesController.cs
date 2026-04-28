@@ -165,9 +165,32 @@ public class FinesController : ControllerBase
     // ── HELPERS ───────────────────────────────────────────────
     private string GenerateReference()
     {
-        var year  = DateTime.UtcNow.Year;
-        var count = _db.Fines.Count() + 1;
-        return $"NXF-{year}-{count:D5}";
+        // Collision-safe: take the highest ordinal that already exists for
+        // this year's prefix and increment. Falls back to a Guid suffix if
+        // a concurrent insert beats us to it.
+        var year   = DateTime.UtcNow.Year;
+        var prefix = $"NXF-{year}-";
+
+        var existingForYear = _db.Fines
+            .Where(f => f.ReferenceNumber.StartsWith(prefix))
+            .Select(f => f.ReferenceNumber)
+            .ToList();
+
+        var maxOrdinal = existingForYear
+            .Select(r =>
+            {
+                var tail = r.Substring(prefix.Length);
+                return int.TryParse(tail, out var n) ? n : 0;
+            })
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var candidate = $"{prefix}{maxOrdinal + 1:D5}";
+
+        if (_db.Fines.Any(f => f.ReferenceNumber == candidate))
+            candidate = $"{prefix}{maxOrdinal + 1:D5}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+
+        return candidate;
     }
 
     private static object MapToDto(Fine f) => new

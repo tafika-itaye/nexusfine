@@ -142,6 +142,17 @@ app.UseNexusFineAuditLog();
 
 app.MapControllers();
 
+// ── HEALTH ENDPOINT ──
+// Used by the E2E smoke test, demo runbook pre-flight, and any future
+// load-balancer / Azure App Service probes. Cheap — no DB hit.
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status      = "ok",
+    service     = "NexusFine.API",
+    environment = app.Environment.EnvironmentName,
+    timestampUtc = DateTime.UtcNow
+}));
+
 // Convenience root → citizen portal (Module 2).
 app.MapGet("/", ctx =>
 {

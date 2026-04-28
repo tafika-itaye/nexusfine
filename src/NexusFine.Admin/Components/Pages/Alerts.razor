@@ -1,0 +1,157 @@
+@page "/alerts"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Alerts — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">System</div>
+    <h1 class="page-title">Alerts</h1>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+    @foreach (var f in _filters)
+    {
+        <button class="btn btn-sm @(_active == f.Key ? "btn-primary" : "btn-ghost")"
+                @onclick="() => SetFilter(f.Key)">
+            @f.Value.label
+        </button>
+    }
+    <button class="btn btn-sm btn-ghost" style="margin-left:auto" @onclick="Reload">↻ Refresh</button>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">@_filters[_active].label</div>
+            <div class="panel-sub">@_alerts.Count event@(_alerts.Count == 1 ? "" : "s") · most recent first</div>
+        </div>
+        <div class="live-dot"></div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading events…</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else if (!_alerts.Any())
+    {
+        <div style="text-align:center;color:var(--text-muted-d);padding:48px;font-size:13px">
+            No events match this filter.
+        </div>
+    }
+    else
+    {
+        <div style="padding:8px 0">
+            @foreach (var a in _alerts)
+            {
+                var (icon, color) = StyleFor(a.Action);
+                <div style="display:flex;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border-mid);align-items:flex-start">
+                    <div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1px solid @color;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+                        @icon
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px">
+                            <div>
+                                <span style="font-weight:600;color:var(--text-on-dark)">@HumanAction(a.Action)</span>
+                                <span style="color:var(--text-muted-d);margin-left:8px;font-size:12px">@a.EntityType #@a.EntityId</span>
+                            </div>
+                            <div style="font-size:11px;color:var(--text-muted-d);white-space:nowrap" class="mono">
+                                @a.Timestamp.ToLocalTime().ToString("dd MMM · HH:mm:ss")
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(a.UserId))
+                        {
+                            <div style="font-size:11px;color:var(--text-muted-d);margin-top:2px">
+                                by <span class="mono">@a.UserId</span>
+                                @if (!string.IsNullOrEmpty(a.IpAddress))
+                                {
+                                    <span> · @a.IpAddress</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private List<AlertDto> _alerts = new();
+    private string _active = "operational";
+
+    private readonly Dictionary<string, (string label, string actions)> _filters = new()
+    {
+        ["operational"] = ("Operational",   "PAYMENT_POSTED,FINE_ISSUED,FINE_PAID"),
+        ["security"]    = ("Security",      "LOGIN_SUCCESS,LOGIN_FAILURE,PERMISSION_DENIED"),
+        ["officers"]    = ("Officer roster","OFFICER_STATUS_CHANGED,OFFICER_CREATED,OFFICER_UPDATED"),
+        ["all"]         = ("All events",    "")
+    };
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task SetFilter(string key) { _active = key; await Reload(); }
+
+    private async Task Reload()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var url = "api/auditlogs?page=1&pageSize=50";
+            var actions = _filters[_active].actions;
+            if (!string.IsNullOrEmpty(actions))
+            {
+                // The API takes a single action filter; for the demo we
+                // request the whole feed and filter client-side so the
+                // category buttons stay snappy.
+            }
+
+            var page = await Http.GetFromJsonAsync<PageResult>(url);
+            var items = page?.Data ?? new();
+
+            if (!string.IsNullOrEmpty(actions))
+            {
+                var keep = actions.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                items = items.Where(a => keep.Contains(a.Action, StringComparer.OrdinalIgnoreCase)).ToList();
+            }
+
+            _alerts = items;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private static (string icon, string color) StyleFor(string action) => action switch
+    {
+        var a when a.StartsWith("LOGIN_SUCCESS") => ("🔓", "var(--success-text)"),
+        var a when a.StartsWith("LOGIN_FAIL")    => ("🚫", "var(--red-bright)"),
+        var a when a.Contains("PAYMENT")         => ("💰", "var(--success-text)"),
+        var a when a.Contains("FINE_ISSUED")     => ("📋", "var(--gold-bright)"),
+        var a when a.Contains("FINE_PAID")       => ("✅", "var(--success-text)"),
+        var a when a.Contains("OFFICER")         => ("👮", "var(--navy-light)"),
+        var a when a.Contains("PERMISSION")      => ("⚠️", "var(--warning-text)"),
+        _                                        => ("📄", "var(--border-mid)")
+    };
+
+    private static string HumanAction(string action) =>
+        action.Replace('_', ' ').ToLower() switch
+        {
+            "login success"     => "Login successful",
+            "login failure"     => "Login failed",
+            "payment posted"    => "Payment posted",
+            "fine issued"       => "Fine issued",
+            "fine paid"         => "Fine paid",
+            "officer status changed" => "Officer status changed",
+            var s => char.ToUpper(s[0]) + s[1..]
+        };
+
+    record AlertDto(int Id, string EntityType, int EntityId, string Action, string? UserId, string? IpAddress, DateTime Timestamp);
+    record PageResult(int Total, int Page, int PageSize, List<AlertDto> Data);
+}

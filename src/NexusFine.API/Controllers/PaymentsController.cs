@@ -166,6 +166,70 @@ public class PaymentsController : ControllerBase
         });
     }
 
+    // GET api/payments?channel=&status=&from=&to=&q=&page=&pageSize=
+    [HttpGet]
+    [Authorize(Roles = "Admin,Supervisor")]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string?   channel,
+        [FromQuery] string?   status,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] string?   q,
+        [FromQuery] int       page     = 1,
+        [FromQuery] int       pageSize = 25)
+    {
+        if (page     < 1)   page     = 1;
+        if (pageSize < 1)   pageSize = 25;
+        if (pageSize > 200) pageSize = 200;
+
+        IQueryable<Payment> query = _db.Payments.Include(p => p.Fine);
+
+        if (!string.IsNullOrWhiteSpace(channel) &&
+            Enum.TryParse<PaymentChannel>(channel, true, out var ch))
+            query = query.Where(p => p.Channel == ch);
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<PaymentStatus>(status, true, out var st))
+            query = query.Where(p => p.Status == st);
+
+        if (from.HasValue) query = query.Where(p => p.InitiatedAt >= from.Value);
+        if (to.HasValue)   query = query.Where(p => p.InitiatedAt <  to.Value);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var s = q.Trim();
+            query = query.Where(p =>
+                p.ReceiptNumber.Contains(s) ||
+                (p.PhoneNumber != null && p.PhoneNumber.Contains(s)) ||
+                p.Fine.ReferenceNumber.Contains(s) ||
+                p.Fine.PlateNumber.Contains(s));
+        }
+
+        var total = await query.CountAsync();
+
+        var rows = await query
+            .OrderByDescending(p => p.InitiatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new
+            {
+                p.Id,
+                p.ReceiptNumber,
+                FineReference = p.Fine.ReferenceNumber,
+                PlateNumber   = p.Fine.PlateNumber,
+                p.Amount,
+                p.Channel,
+                p.Status,
+                p.PhoneNumber,
+                p.TransactionReference,
+                p.InitiatedAt,
+                p.CompletedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, items = rows });
+    }
+
     // ── HELPERS ───────────────────────────────────────────────
     private async Task<IActionResult> ProcessCallback(string rawPayload, PaymentChannel channel)
     {
@@ -231,9 +295,33 @@ public class PaymentsController : ControllerBase
 
     private string GenerateReceipt()
     {
-        var year  = DateTime.UtcNow.Year;
-        var count = _db.Payments.Count() + 1;
-        return $"MPAY-{year}-{count:D5}";
+        // Generate a unique receipt by reading the highest existing ordinal
+        // for THIS year's prefix and incrementing. Falls back to a Guid suffix
+        // if for any reason a collision still happens (e.g. concurrent creates).
+        var year   = DateTime.UtcNow.Year;
+        var prefix = $"MPAY-{year}-";
+
+        var existingForYear = _db.Payments
+            .Where(p => p.ReceiptNumber.StartsWith(prefix))
+            .Select(p => p.ReceiptNumber)
+            .ToList();
+
+        var maxOrdinal = existingForYear
+            .Select(r =>
+            {
+                var tail = r.Substring(prefix.Length);
+                return int.TryParse(tail, out var n) ? n : 0;
+            })
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var candidate = $"{prefix}{maxOrdinal + 1:D5}";
+
+        // Belt-and-braces: if somehow it collides (race), append a 4-char Guid.
+        if (_db.Payments.Any(p => p.ReceiptNumber == candidate))
+            candidate = $"{prefix}{maxOrdinal + 1:D5}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+
+        return candidate;
     }
 }
 

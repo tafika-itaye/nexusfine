@@ -1,0 +1,221 @@
+@page "/analytics"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Analytics — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Reports</div>
+    <h1 class="page-title">Analytics</h1>
+</div>
+
+<!-- PERIOD TOGGLE -->
+<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+    @foreach (var p in new[] { "7d", "14d", "30d" })
+    {
+        <button class="btn btn-sm @(_period == p ? "btn-primary" : "btn-ghost")"
+                @onclick="() => SetPeriod(p)">
+            @PeriodLabel(p)
+        </button>
+    }
+    <button class="btn btn-sm btn-ghost" style="margin-left:auto" @onclick="LoadAll">↻ Refresh</button>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Crunching numbers…</span></div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">⚠ @_error</div>
+}
+else
+{
+    <!-- HEADLINE NUMBERS -->
+    <div class="kpi-grid">
+        <div class="kpi-card gold">
+            <div class="kpi-accent" style="background:var(--gold)"></div>
+            <div class="kpi-label">Total Issued (period)</div>
+            <div class="kpi-value" style="color:var(--gold-bright)">MK @_recon?.TotalIssued.ToString("N0")</div>
+            <div class="kpi-bg-icon">📋</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-accent" style="background:var(--success-text)"></div>
+            <div class="kpi-label">Collected</div>
+            <div class="kpi-value" style="color:var(--success-text)">MK @_recon?.TotalCollected.ToString("N0")</div>
+            <div class="kpi-bg-icon">✅</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-accent" style="background:var(--red)"></div>
+            <div class="kpi-label">Outstanding</div>
+            <div class="kpi-value" style="color:var(--red-bright)">MK @_recon?.TotalOutstanding.ToString("N0")</div>
+            <div class="kpi-bg-icon">⏳</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-accent" style="background:var(--navy-light)"></div>
+            <div class="kpi-label">Overdue</div>
+            <div class="kpi-value" style="color:var(--text-on-dark)">MK @_recon?.TotalOverdue.ToString("N0")</div>
+            <div class="kpi-bg-icon">⚠️</div>
+        </div>
+    </div>
+
+    <!-- ISSUED VS COLLECTED TREND -->
+    <div class="panel mt-16">
+        <div class="panel-hdr">
+            <div>
+                <div class="panel-title">Issued vs Collected — @PeriodLabel(_period)</div>
+                <div class="panel-sub">Daily volume; collection follows issuance with typical 3-day lag</div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:11px;align-items:center">
+                <span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;background:var(--gold-bright);border-radius:2px"></span> Issued</span>
+                <span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;background:var(--success-text);border-radius:2px"></span> Collected</span>
+            </div>
+        </div>
+        <div style="padding:20px 16px 16px">
+            @if (_trend is null || _trend.Labels.Count == 0)
+            {
+                <div style="text-align:center;color:var(--text-muted-d);padding:32px">No trend data for this period.</div>
+            }
+            else
+            {
+                var max = Math.Max(_trend.Issued.DefaultIfEmpty(0).Max(), _trend.Collected.DefaultIfEmpty(0).Max());
+                if (max == 0) max = 1;
+                <div style="display:flex;gap:6px;align-items:flex-end;height:180px">
+                    @for (int i = 0; i < _trend.Labels.Count; i++)
+                    {
+                        var hIssued = (_trend.Issued[i] / (double)max) * 160;
+                        var hColl   = (_trend.Collected[i] / (double)max) * 160;
+                        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                            <div style="display:flex;gap:3px;align-items:flex-end;height:160px;width:100%;justify-content:center">
+                                <div title="Issued: @_trend.Issued[i]" style="width:40%;background:var(--gold-bright);height:@(hIssued)px;border-radius:3px 3px 0 0;min-height:2px"></div>
+                                <div title="Collected: @_trend.Collected[i]" style="width:40%;background:var(--success-text);height:@(hColl)px;border-radius:3px 3px 0 0;min-height:2px"></div>
+                            </div>
+                            <div style="font-size:10px;color:var(--text-muted-d)">@_trend.Labels[i]</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TWO COLUMNS: TOP OFFENCES + ZONE BREAKDOWN -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+        <div class="panel">
+            <div class="panel-hdr">
+                <div>
+                    <div class="panel-title">Top Offences</div>
+                    <div class="panel-sub">Most frequently cited</div>
+                </div>
+            </div>
+            <div style="padding:16px 20px">
+                @if (_topOffences is null || !_topOffences.Any())
+                {
+                    <div style="color:var(--text-muted-d)">No data.</div>
+                }
+                else
+                {
+                    var topMax = _topOffences.Max(o => o.Count);
+                    @foreach (var o in _topOffences)
+                    {
+                        var pct = (o.Count / (double)topMax) * 100;
+                        <div style="margin-bottom:14px">
+                            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                                <span style="color:var(--text-on-dark);font-weight:600">@o.Name</span>
+                                <span class="mono" style="color:var(--text-muted-d)">@o.Count · MK @o.Amount.ToString("N0")</span>
+                            </div>
+                            <div style="height:6px;background:var(--border-mid);border-radius:3px;overflow:hidden">
+                                <div style="width:@pct%;height:100%;background:linear-gradient(90deg,var(--gold) 0%,var(--gold-bright) 100%);border-radius:3px"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-hdr">
+                <div>
+                    <div class="panel-title">Zone Performance — Period</div>
+                    <div class="panel-sub">Collection rate by zone</div>
+                </div>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Issued</th>
+                            <th>Paid</th>
+                            <th>Rate</th>
+                            <th style="text-align:right">Collected (MK)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_recon?.ByZone is null || !_recon.ByZone.Any())
+                        {
+                            <tr><td colspan="5" style="text-align:center;color:var(--text-muted-d);padding:24px">No zone data.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var z in _recon.ByZone.OrderByDescending(z => z.AmountCollected))
+                            {
+                                var rateColor = z.Rate >= 75 ? "var(--success-text)" : z.Rate >= 50 ? "var(--warning-text)" : "var(--red-bright)";
+                                <tr>
+                                    <td style="font-weight:600">@z.Zone</td>
+                                    <td class="mono">@z.Issued</td>
+                                    <td class="mono" style="color:var(--success-text)">@z.Collected</td>
+                                    <td><span class="mono fw-700" style="color:@rateColor">@z.Rate.ToString("N1")%</span></td>
+                                    <td class="mono fw-700" style="text-align:right">MK @z.AmountCollected.ToString("N0")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private string _period = "7d";
+
+    private TrendDto? _trend;
+    private List<TopOffenceDto>? _topOffences;
+    private ReconDto? _recon;
+
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task SetPeriod(string p) { _period = p; await LoadAll(); }
+
+    private async Task LoadAll()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var trendTask = Http.GetFromJsonAsync<TrendDto>($"api/dashboard/trend?period={_period}");
+            var topTask   = Http.GetFromJsonAsync<List<TopOffenceDto>>("api/dashboard/topoffences?top=8");
+            var reconTask = Http.GetFromJsonAsync<ReconDto>("api/dashboard/reconciliation");
+            await Task.WhenAll(trendTask, topTask, reconTask);
+            _trend       = trendTask.Result;
+            _topOffences = topTask.Result;
+            _recon       = reconTask.Result;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private static string PeriodLabel(string p) => p switch
+    {
+        "14d" => "14 days",
+        "30d" => "30 days",
+        _     => "7 days"
+    };
+
+    record TrendDto(List<string> Labels, List<int> Issued, List<int> Collected);
+    record TopOffenceDto(string Name, int Count, decimal Amount);
+    record ZoneDto(string Zone, int Issued, int Collected, decimal AmountIssued, decimal AmountCollected, decimal Rate);
+    record ReconDto(decimal TotalIssued, decimal TotalCollected, decimal TotalOutstanding, decimal TotalOverdue, List<ZoneDto> ByZone);
+}
