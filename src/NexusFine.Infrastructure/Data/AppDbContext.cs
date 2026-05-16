@@ -358,17 +358,36 @@ public class AppDbContext : DbContext
             new PatrolPost { Id = 6, Code = "PP-ZBA-001-A", Name = "Zomba M3 Junction",       StationId = 5, IsActive = true, CreatedAt = new DateTime(2026,1,1), UpdatedAt = new DateTime(2026,1,1) }
         );
 
+        // Offence schedule per the Road Traffic Act (Cap. 69:01), Road Traffic
+        // (Prescribed Offences and Penalties) Regulations, 2026 — published
+        // 8 May 2026 by the Minister of Transport (Government Notice No. 38).
+        // Existing IDs 1-10 are preserved (FKs from seeded fines depend on them);
+        // amounts and names have been brought into line with the Notice, and
+        // 11 additional offences from the Notice are added as OC-011..OC-021.
         mb.Entity<OffenceCode>().HasData(
-            new OffenceCode { Id = 1,  Code = "OC-001", Name = "Speeding",                         Description = "Exceeding the posted speed limit",                  DefaultFineAmount = 50000,  IsActive = true },
-            new OffenceCode { Id = 2,  Code = "OC-002", Name = "Red Light Violation",               Description = "Failure to stop at a red traffic light",           DefaultFineAmount = 75000,  IsActive = true },
-            new OffenceCode { Id = 3,  Code = "OC-003", Name = "No Seatbelt",                       Description = "Driver or passenger not wearing seatbelt",         DefaultFineAmount = 25000,  IsActive = true },
-            new OffenceCode { Id = 4,  Code = "OC-004", Name = "Expired Road Licence",              Description = "Driving with an expired road licence",              DefaultFineAmount = 40000,  IsActive = true },
-            new OffenceCode { Id = 5,  Code = "OC-005", Name = "Unroadworthy Vehicle",              Description = "Operating a vehicle in an unroadworthy condition",  DefaultFineAmount = 60000,  IsActive = true },
-            new OffenceCode { Id = 6,  Code = "OC-006", Name = "Wrong Lane",                        Description = "Driving in the wrong lane",                        DefaultFineAmount = 30000,  IsActive = true },
-            new OffenceCode { Id = 7,  Code = "OC-007", Name = "No Helmet",                         Description = "Motorcycle rider without a helmet",                DefaultFineAmount = 20000,  IsActive = true },
-            new OffenceCode { Id = 8,  Code = "OC-008", Name = "Overloading",                       Description = "Vehicle carrying load exceeding permitted weight",  DefaultFineAmount = 80000,  IsActive = true },
-            new OffenceCode { Id = 9,  Code = "OC-009", Name = "Driving Without Licence",           Description = "Operating a vehicle without a valid licence",       DefaultFineAmount = 100000, IsActive = true },
-            new OffenceCode { Id = 10, Code = "OC-010", Name = "Use of Mobile Phone While Driving", Description = "Using a handheld mobile phone while driving",       DefaultFineAmount = 50000,  IsActive = true }
+            new OffenceCode { Id = 1,  Code = "OC-001", Name = "Speeding",                              Description = "Exceeding the posted speed limit. K20,000–K90,000 depending on excess speed.",                              DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 2,  Code = "OC-002", Name = "Failure to Obey Road Signs",            Description = "Disregarding traffic signs, signals or markings (including red-light violations).",                         DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 3,  Code = "OC-003", Name = "No Seatbelt",                            Description = "Driver or passenger not wearing seatbelt. K15,000 per affected passenger.",                                  DefaultFineAmount = 15000,  IsActive = true },
+            new OffenceCode { Id = 4,  Code = "OC-004", Name = "Using an Unregistered Vehicle",          Description = "Operating a vehicle not registered with DRTSS, or with an expired registration.",                            DefaultFineAmount = 100000, IsActive = true },
+            new OffenceCode { Id = 5,  Code = "OC-005", Name = "Unroadworthy Vehicle",                   Description = "Operating a vehicle in an unroadworthy condition.",                                                           DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 6,  Code = "OC-006", Name = "Dangerous Overtaking",                   Description = "Overtaking in a manner likely to cause danger to other road users.",                                          DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 7,  Code = "OC-007", Name = "Riding Motorcycle Without Helmet",       Description = "Motorcycle rider or passenger without an approved helmet.",                                                  DefaultFineAmount = 30000,  IsActive = true },
+            new OffenceCode { Id = 8,  Code = "OC-008", Name = "Carrying Unsecured Goods or Load",       Description = "Carrying goods/load that are not secured. Separate K50,000 fine for throwing rubbish from a vehicle.",       DefaultFineAmount = 100000, IsActive = true },
+            new OffenceCode { Id = 9,  Code = "OC-009", Name = "Driving Without a Licence",              Description = "Operating a motor vehicle without a valid driver's licence.",                                                 DefaultFineAmount = 200000, IsActive = true },
+            new OffenceCode { Id = 10, Code = "OC-010", Name = "Using Phone While Driving",              Description = "Holding or operating a mobile phone while driving.",                                                          DefaultFineAmount = 50000,  IsActive = true },
+
+            // Additional offences from Government Notice No. 38
+            new OffenceCode { Id = 11, Code = "OC-011", Name = "Failure to Display Number Plates",       Description = "Number plates or vehicle identification not properly displayed.",                                            DefaultFineAmount = 100000, IsActive = true },
+            new OffenceCode { Id = 12, Code = "OC-012", Name = "Drunk Driving",                          Description = "Driving while under the influence of alcohol. Up to K300,000 plus driver's-licence suspension.",            DefaultFineAmount = 300000, IsActive = true },
+            new OffenceCode { Id = 13, Code = "OC-013", Name = "No Insurance (Private Vehicle)",         Description = "Driving without valid third-party insurance — K100,000 (private), up to K800,000 for PSV.",                  DefaultFineAmount = 100000, IsActive = true },
+            new OffenceCode { Id = 14, Code = "OC-014", Name = "No Certificate of Fitness (COF)",        Description = "Vehicle operating without a valid Certificate of Fitness.",                                                  DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 15, Code = "OC-015", Name = "Parking Illegally or Causing Obstruction", Description = "Parking in a prohibited area or in a manner that obstructs other road users.",                              DefaultFineAmount = 30000,  IsActive = true },
+            new OffenceCode { Id = 16, Code = "OC-016", Name = "Failing to Stop for Traffic Officers",   Description = "Failure to stop when signalled to do so by a uniformed traffic officer.",                                    DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 17, Code = "OC-017", Name = "Excess Passengers on Motorcycle",        Description = "Carrying more passengers than permitted on a motorcycle. K20,000 per excess passenger.",                   DefaultFineAmount = 20000,  IsActive = true },
+            new OffenceCode { Id = 18, Code = "OC-018", Name = "Hooting Unnecessarily",                  Description = "Sounding the vehicle horn other than as a warning of imminent danger.",                                       DefaultFineAmount = 30000,  IsActive = true },
+            new OffenceCode { Id = 19, Code = "OC-019", Name = "Texting or Calling While Driving",       Description = "Reading, sending or composing text messages, or making/receiving calls while driving.",                       DefaultFineAmount = 50000,  IsActive = true },
+            new OffenceCode { Id = 20, Code = "OC-020", Name = "No Warning Triangles / Fire Extinguisher / Spare Tyre", Description = "Vehicle missing one or more required safety items. K10,000 per missing item.",                  DefaultFineAmount = 10000,  IsActive = true },
+            new OffenceCode { Id = 21, Code = "OC-021", Name = "Throwing Rubbish from Vehicle",          Description = "Discarding waste from a moving or stationary vehicle onto a public road.",                                   DefaultFineAmount = 50000,  IsActive = true }
         );
     }
 }
