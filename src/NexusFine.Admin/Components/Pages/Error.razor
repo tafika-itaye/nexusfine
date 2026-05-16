@@ -1,30 +1,96 @@
-﻿@page "/Error"
+@page "/Error"
+@layout BlankLayout
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Something went wrong — NexusFine Admin</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="status-shell">
+    <div class="status-card">
+        <div class="status-flag"><span class="f1"></span><span class="f2"></span><span class="f3"></span></div>
+        <div class="status-mark">
+            <div class="brand-eagle">
+                <img src="img/gov/malawi-coat-of-arms.svg" alt="Coat of Arms of Malawi" />
+            </div>
+            <div>
+                <div class="brand-name">NEXUS<span>FINE</span></div>
+                <div class="brand-sub">Admin Portal</div>
+            </div>
+        </div>
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
-    </p>
-}
+        <div class="status-code" style="color:var(--red-bright)">500</div>
+        <h1 class="status-title">Something went wrong</h1>
+        <p class="status-desc">
+            The system encountered an unexpected error while processing your request.
+            Our operators have been notified. Please try again in a moment, or sign in
+            again if the problem persists.
+        </p>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        @if (ShowRequestId)
+        {
+            <div style="margin: 0 auto 18px; max-width: 380px; padding: 10px 14px;
+                        background: var(--surface-2); border: 1px solid var(--border-mid);
+                        border-radius: var(--radius); text-align: left;">
+                <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted-d)">Reference for support</div>
+                <div class="mono" style="font-size:11px;color:var(--text-on-dark);word-break:break-all">@RequestId</div>
+            </div>
+        }
 
-@code{
+        <div class="status-actions">
+            <a class="btn btn-gold" href="/">← Back to Dashboard</a>
+            <a class="btn btn-ghost" href="login">Sign in again</a>
+        </div>
+
+        <div class="status-foot">
+            Quote the reference above when contacting your MPS ICT helpdesk.
+            Helpdesk hours: 06:00–22:00 daily.
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-shell {
+        min-height: 100vh;
+        display: flex; align-items: center; justify-content: center;
+        background:
+            linear-gradient(135deg, rgba(14,23,41,0.96) 0%, rgba(17,28,51,0.92) 60%, rgba(26,39,68,0.88) 100%),
+            url('img/gov/malawi-map-outline.svg') center/40% no-repeat,
+            var(--surface-0);
+        padding: 24px;
+    }
+    .status-card {
+        width: 100%; max-width: 520px;
+        background: var(--surface-1);
+        border: 1px solid var(--border-dark);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        padding: 28px 34px 34px;
+        text-align: center;
+    }
+    .status-flag { display: flex; gap: 3px; margin: 0 auto 18px; justify-content: center; }
+    .status-flag span { height: 5px; width: 32px; border-radius: 1px; }
+    .status-flag .f1 { background: #000; }
+    .status-flag .f2 { background: #ce1126; }
+    .status-flag .f3 { background: #339e35; }
+    .status-mark { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: 24px; }
+    .status-mark .brand-eagle {
+        width: 48px; height: 48px; background: var(--white);
+        border: 2px solid var(--gold); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; padding: 7px;
+    }
+    .status-mark .brand-eagle img { width: 100%; height: 100%; object-fit: contain; }
+    .status-mark .brand-name { font-size: 18px; font-weight: 800; color: var(--text-on-dark); letter-spacing: 0.04em; }
+    .status-mark .brand-name span { color: var(--gold-bright); }
+    .status-mark .brand-sub  { font-size: 10px; color: var(--text-muted-d); letter-spacing: 0.1em; text-transform: uppercase; }
+    .status-code { font-family: var(--font-mono); font-size: 56px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+    .status-title { font-size: 22px; font-weight: 800; color: var(--text-on-dark); margin: 0 0 10px; }
+    .status-desc { font-size: 13px; color: var(--text-muted-d); line-height: 1.7; margin: 0 auto 22px; max-width: 380px; }
+    .status-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .status-foot { font-size: 11px; color: var(--text-muted-d); line-height: 1.6; padding-top: 18px; border-top: 1px solid var(--border-mid); }
+</style>
+
+@code {
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 

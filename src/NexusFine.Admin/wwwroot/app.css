@@ -24,8 +24,17 @@
   --warning-bg:    rgba(180,83,9,0.12);
   --text-on-dark:  #e8edf8;
   --text-muted-d:  #7b8db8;
-  --font-body:     'Inter', system-ui, sans-serif;
-  --font-mono:     'Space Mono', monospace;
+  /* ── TYPOGRAPHY (Microsoft Windows-11 stack) ───────────────────────────
+     Body: Segoe UI Variable (Win 11 default) → Segoe UI (Win 10) →
+           system-ui → -apple-system → sans-serif. All Windows operators
+           already have this; no webfont download needed.
+     Mono: Cascadia Mono / Cascadia Code (Microsoft's open-source coding
+           font, ships with Windows 11 + VS Code, slashed-zero by default)
+           → Consolas (older Windows) → ui-monospace → Menlo → monospace.
+     Numerals everywhere use tabular-nums (columns align) + slashed-zero
+     (distinguishable from O). See `body` and `.mono` rules below. */
+  --font-body:     'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-mono:     'Cascadia Mono', 'Cascadia Code', Consolas, ui-monospace, 'JetBrains Mono', Menlo, 'Courier New', monospace;
   --radius:        8px;
   --radius-lg:     12px;
   --sidebar-w:     230px;
@@ -33,7 +42,31 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
-body { background: var(--surface-0); color: var(--text-on-dark); font-family: var(--font-body); font-size: 14px; }
+body {
+  background: var(--surface-0);
+  color: var(--text-on-dark);
+  font-family: var(--font-body);
+  font-size: 14px;
+  /* Tabular figures so columns of numbers align everywhere by default. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* All monospace + KPI numerals get slashed-zero + tabular-nums so '0' is
+   never confused with 'O' and columns line up perfectly. Cascadia Mono
+   ships slashed-zero by default; we still set the feature explicitly for
+   any fallback that needs it (Consolas, JetBrains Mono, etc.). */
+.mono,
+.kpi-value,
+.kpi-bg-icon ~ .kpi-value,
+.data-table td.mono,
+.rv,
+.pill {
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: "tnum" 1, "zero" 1, "ss01" 1;
+}
 
 /* ── LAYOUT ── */
 .admin-layout { display: flex; height: 100vh; overflow: hidden; }

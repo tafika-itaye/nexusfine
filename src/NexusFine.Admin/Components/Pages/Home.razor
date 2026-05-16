@@ -102,8 +102,9 @@ else
                     @if (_recentFines is null || !_recentFines.Any())
                     {
                         <tr>
-                            <td colspan="6" style="text-align:center;color:var(--text-muted-d);padding:24px">
-                                No fines recorded yet.
+                            <td colspan="6" style="padding:0">
+                                <EmptyState Title="No fines recorded yet"
+                                            Hint="As officers issue fines in the field they will appear here in real time." />
                             </td>
                         </tr>
                     }
@@ -153,8 +154,11 @@ else
                     @if (_officers is null || !_officers.Any())
                     {
                         <tr>
-                            <td colspan="8" style="text-align:center;color:var(--text-muted-d);padding:24px">
-                                No officer data available.
+                            <td colspan="8" style="padding:0">
+                                <EmptyState Title="No officer data yet"
+                                            Hint="Register officers from the Officers page to see their performance ranking here."
+                                            ActionLabel="Open Officers page"
+                                            ActionHref="officers" />
                             </td>
                         </tr>
                     }

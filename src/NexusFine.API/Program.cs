@@ -98,6 +98,39 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// ── RATE LIMITING ────────────────────────────────────────────
+// Public-facing endpoints (citizen lookup, payment initiate, chatbot, USSD/WhatsApp
+// webhooks) need rate limits to absorb misbehaving clients and bot scans.
+// Strategy: per-IP fixed window. Two named policies — "public" (relaxed) for
+// citizen reads, "sensitive" (tight) for state-changing or auth endpoints.
+builder.Services.AddRateLimiter(rl =>
+{
+    rl.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    rl.AddPolicy("public", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientKey(httpContext),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,                           // 120 req / minute / IP
+                Window      = TimeSpan.FromMinutes(1),
+                QueueLimit  = 0,
+            }));
+
+    rl.AddPolicy("sensitive", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientKey(httpContext),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,                            // 10 req / minute / IP — catches login brute force
+                Window      = TimeSpan.FromMinutes(1),
+                QueueLimit  = 0,
+            }));
+
+    static string ClientKey(HttpContext c) =>
+        c.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+});
+
 // ── CORS ──────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
@@ -137,6 +170,8 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.UseNexusFineAuditLog();
 

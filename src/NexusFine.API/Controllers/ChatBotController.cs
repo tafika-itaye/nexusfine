@@ -18,6 +18,7 @@ namespace NexusFine.API.Controllers;
 [ApiController]
 [Route("api/chatbot")]
 [AllowAnonymous]                                    // demo surface; the citizen channel is unauth'd by design
+[Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
 public class ChatBotController : ControllerBase
 {
     private static readonly ConcurrentDictionary<string, ChatSession> _sessions = new();
@@ -49,9 +50,60 @@ public class ChatBotController : ControllerBase
             return BadRequest(new { message = "Unknown session — call /start first." });
 
         var input = (req.Text ?? "").Trim();
-        var reply = await Advance(s, input);
+        s.LastActivityAt = DateTime.UtcNow;
+        s.Turns         += 1;
 
+        var reply = await Advance(s, input);
         return Ok(new ChatTurn(s.Id, s.State.ToString(), reply.Bubbles, reply.QuickReplies));
+    }
+
+    // GET api/chatbot/sessions  — admin "Live Conversations" surface
+    // (Anonymous like the rest of this controller; for the demo this lives on
+    // localhost; for production add [Authorize(Roles="Admin,Supervisor")].)
+    [HttpGet("sessions")]
+    public IActionResult ListSessions([FromQuery] string? channel = null, [FromQuery] bool activeOnly = false)
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-15);
+
+        var q = _sessions.Values.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(channel))
+            q = q.Where(s => s.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase));
+        if (activeOnly)
+            q = q.Where(s => s.LastActivityAt >= cutoff && s.State != State.Done);
+
+        var rows = q
+            .OrderByDescending(s => s.LastActivityAt)
+            .Take(100)
+            .Select(s => new
+            {
+                sessionId       = s.Id,
+                channel         = s.Channel,
+                state           = s.State.ToString(),
+                turns           = s.Turns,
+                startedAt       = s.StartedAt,
+                lastActivityAt  = s.LastActivityAt,
+                idleSeconds     = (int)(DateTime.UtcNow - s.LastActivityAt).TotalSeconds,
+                isActive        = s.LastActivityAt >= cutoff && s.State != State.Done,
+                payerPhone      = s.PayerPhone,
+                selectedFineId  = s.SelectedFineId,
+                selectedChannel = s.SelectedChannel?.ToString(),
+                lastReceipt     = s.LastReceiptNumber,
+                paymentPostedAt = s.PaymentPostedAt
+            })
+            .ToList();
+
+        var total = _sessions.Count;
+        var active = _sessions.Values.Count(s => s.LastActivityAt >= cutoff && s.State != State.Done);
+        var completed = _sessions.Values.Count(s => s.PaymentPostedAt.HasValue);
+
+        return Ok(new
+        {
+            total,
+            active,
+            completed,
+            generatedAt = DateTime.UtcNow,
+            sessions = rows
+        });
     }
 
     // ── STATE MACHINE ──
@@ -199,23 +251,84 @@ public class ChatBotController : ControllerBase
             return (new List<Bubble> { Bubble.Bot("⚠ Sorry, we couldn't find that fine any more. Reply *menu* to start over.") }, new());
         }
 
-        // For the demo we skip the actual PaymentsController.Initiate call to keep this
-        // controller self-contained; in production the chatbot would forward to it.
-        var receipt = $"MPAY-CHAT-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+        if (fine.Status == FineStatus.Paid)
+        {
+            s.State = State.Done;
+            return (new List<Bubble> { Bubble.Bot($"ℹ This fine `{fine.ReferenceNumber}` is already marked as paid. Reply *menu* to do another lookup.") }, QuickReplies("menu"));
+        }
+
+        // Write a real Payment row (status Completed) and flip the fine to Paid.
+        // This is what the admin Payments page + audit log surface as a reconciliable
+        // record. Uses the same receipt-numbering pattern as PaymentsController so
+        // chat-issued receipts sit in the same sequence as desk-issued ones.
+        var ch = s.SelectedChannel ?? PaymentChannel.WhatsApp;
+        var receipt = GenerateChatReceipt();
+
+        var payment = new Payment
+        {
+            ReceiptNumber        = receipt,
+            FineId               = fine.Id,
+            Amount               = fine.Amount + (fine.PenaltyAmount ?? 0),
+            Channel              = ch,
+            Status               = PaymentStatus.Completed,
+            PhoneNumber          = s.PayerPhone,
+            TransactionReference = $"CHAT-{s.Channel.ToUpper()}-{s.Id}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+            GatewayResponse      = $"{{\"channel\":\"{ch}\",\"chatSessionId\":\"{s.Id}\",\"completedVia\":\"chatbot\"}}",
+            InitiatedAt          = DateTime.UtcNow,
+            CompletedAt          = DateTime.UtcNow
+        };
+        _db.Payments.Add(payment);
+
+        fine.Status    = FineStatus.Paid;
+        fine.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        // Record on the session so the admin /conversations page can show outcome.
+        s.LastReceiptNumber = receipt;
+        s.PaymentPostedAt   = DateTime.UtcNow;
+        s.State             = State.Done;
+
         var msg = $@"✅ *Payment received*
 
 Receipt: `{receipt}`
 Fine:    `{fine.ReferenceNumber}`
-Amount:  MK {fine.Amount:N0}
-Channel: {s.SelectedChannel}
+Amount:  MK {payment.Amount:N0}
+Channel: {ch}
 Status:  COMPLETED
 
 A PDF receipt has been sent to your inbox.
 
 Reply *menu* to do another lookup.";
 
-        s.State = State.Done;
         return (new List<Bubble> { Bubble.Bot(msg) }, QuickReplies("menu"));
+    }
+
+    /// <summary>
+    /// Mirrors PaymentsController.GenerateReceipt: collision-safe ordinal for the
+    /// current year, with Guid fallback if a concurrent insert races us.
+    /// </summary>
+    private string GenerateChatReceipt()
+    {
+        var year   = DateTime.UtcNow.Year;
+        var prefix = $"MPAY-{year}-";
+
+        var maxOrdinal = _db.Payments
+            .Where(p => p.ReceiptNumber.StartsWith(prefix))
+            .Select(p => p.ReceiptNumber)
+            .ToList()
+            .Select(r =>
+            {
+                var tail = r.Substring(prefix.Length);
+                return int.TryParse(tail, out var n) ? n : 0;
+            })
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var candidate = $"{prefix}{maxOrdinal + 1:D5}";
+        if (_db.Payments.Any(p => p.ReceiptNumber == candidate))
+            candidate = $"{prefix}{maxOrdinal + 1:D5}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+        return candidate;
     }
 
     // ── HELPERS ──
@@ -267,5 +380,12 @@ Reply *menu* to do another lookup.";
         public int? SelectedFineId { get; set; }
         public PaymentChannel? SelectedChannel { get; set; }
         public string? PayerPhone { get; set; }
+
+        // For the admin /conversations live view
+        public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
+        public int Turns { get; set; }
+        public string? LastReceiptNumber { get; set; }
+        public DateTime? PaymentPostedAt { get; set; }
     }
 }

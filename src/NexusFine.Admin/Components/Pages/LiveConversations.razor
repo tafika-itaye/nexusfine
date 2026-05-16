@@ -1,0 +1,244 @@
+@page "/conversations"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@rendermode InteractiveServer
+@inject HttpClient Http
+@implements IDisposable
+
+<PageTitle>Live Conversations — NexusFine Admin</PageTitle>
+
+<div class="page-header">
+    <div class="section-eyebrow">Citizen Channels</div>
+    <h1 class="page-title">Live Conversations</h1>
+</div>
+
+<!-- TOOLBAR -->
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+    @foreach (var c in _channels)
+    {
+        <button class="btn btn-sm @(_channelFilter == c.key ? "btn-primary" : "btn-ghost")"
+                @onclick="() => SetChannel(c.key)">@c.label</button>
+    }
+    <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-muted-d);margin-left:10px">
+        <input type="checkbox" @bind="_activeOnly" @bind:after="LoadOnce" />
+        Active only
+    </label>
+    <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-muted-d)">
+        <input type="checkbox" @bind="_autoRefresh" @bind:after="ToggleAuto" />
+        Auto-refresh (5s)
+    </label>
+    <span style="margin-left:auto;font-size:11px;color:var(--text-muted-d)" class="mono">
+        @(_lastFetch == default ? "—" : $"updated {(int)(DateTime.Now - _lastFetch).TotalSeconds}s ago")
+    </span>
+    <button class="btn btn-sm btn-ghost" @onclick="LoadOnce">↻ Refresh</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid" style="margin-bottom:16px">
+    <div class="kpi-card blue">
+        <div class="kpi-accent" style="background:var(--navy-light)"></div>
+        <div class="kpi-label">Total Sessions (memory)</div>
+        <div class="kpi-value" style="color:var(--text-on-dark)">@_total.ToString("N0")</div>
+        <div class="kpi-bg-icon">💬</div>
+    </div>
+    <div class="kpi-card gold">
+        <div class="kpi-accent" style="background:var(--gold)"></div>
+        <div class="kpi-label">Active (last 15 min)</div>
+        <div class="kpi-value" style="color:var(--gold-bright)">@_active.ToString("N0")</div>
+        <div class="kpi-bg-icon">⚡</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-accent" style="background:var(--success-text)"></div>
+        <div class="kpi-label">Completed Payments</div>
+        <div class="kpi-value" style="color:var(--success-text)">@_completed.ToString("N0")</div>
+        <div class="kpi-bg-icon">✅</div>
+    </div>
+    <div class="kpi-card red">
+        <div class="kpi-accent" style="background:var(--red)"></div>
+        <div class="kpi-label">Drop-off Rate</div>
+        <div class="kpi-value" style="color:var(--red-bright)">
+            @(_total == 0 ? "—" : ((1.0 - (double)_completed / _total) * 100).ToString("N0") + "%")
+        </div>
+        <div class="kpi-bg-icon">📉</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-hdr">
+        <div>
+            <div class="panel-title">Conversations</div>
+            <div class="panel-sub">@_rows.Count session@(_rows.Count == 1 ? "" : "s") shown · most recent first</div>
+        </div>
+        @if (_autoRefresh)
+        {
+            <div class="live-dot"></div>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state"><div class="spinner"></div><span>Loading conversations…</span></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger" style="margin:16px">⚠ @_error</div>
+    }
+    else if (!_rows.Any())
+    {
+        <div style="text-align:center;color:var(--text-muted-d);padding:48px;font-size:13px">
+            No conversations yet. Start one on <a href="whatsapp" style="color:var(--gold-bright)">WhatsApp</a> or <a href="ussd" style="color:var(--gold-bright)">USSD</a>.
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Channel</th>
+                        <th>Session</th>
+                        <th>State</th>
+                        <th>Turns</th>
+                        <th>Started</th>
+                        <th>Idle</th>
+                        <th>Phone</th>
+                        <th>Outcome</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in _rows)
+                    {
+                        var rowColor = s.IsActive ? "var(--gold-dim)" : "transparent";
+                        <tr style="background:@rowColor">
+                            <td>
+                                <span class="pill" style="background:@ChannelColor(s.Channel);color:white;border:none">
+                                    @ChannelLabel(s.Channel)
+                                </span>
+                            </td>
+                            <td class="mono" style="font-size:11px;color:var(--text-muted-d)">@s.SessionId</td>
+                            <td class="mono" style="font-size:11px">@s.State</td>
+                            <td class="mono">@s.Turns</td>
+                            <td style="font-size:11px;color:var(--text-muted-d)">@s.StartedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                            <td class="mono" style="font-size:11px;color:@(s.IsActive ? "var(--gold-bright)" : "var(--text-muted-d)")">
+                                @FormatIdle(s.IdleSeconds) @(s.IsActive ? "🟢" : "")
+                            </td>
+                            <td class="mono" style="font-size:11px">@(s.PayerPhone ?? "—")</td>
+                            <td>
+                                @if (s.LastReceipt is not null)
+                                {
+                                    <span class="pill pill-paid" style="font-size:10px">@s.LastReceipt</span>
+                                }
+                                else if (s.State == "AwaitingChannel" || s.State == "AwaitingPhoneForPayment")
+                                {
+                                    <span class="pill pill-pending" style="font-size:10px">In progress</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--text-muted-d);font-size:11px">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool   _loading = true;
+    private string? _error;
+    private List<SessionDto> _rows = new();
+    private int _total, _active, _completed;
+    private DateTime _lastFetch;
+    private string _channelFilter = "all";
+    private bool _activeOnly;
+    private bool _autoRefresh;
+    private System.Threading.Timer? _timer;
+
+    private readonly (string key, string label)[] _channels =
+    {
+        ("all",      "All channels"),
+        ("whatsapp", "WhatsApp"),
+        ("ussd",     "USSD"),
+    };
+
+    protected override async Task OnInitializedAsync() => await LoadOnce();
+
+    private async Task SetChannel(string key) { _channelFilter = key; await LoadOnce(); }
+
+    private async Task LoadOnce()
+    {
+        _loading = _rows.Count == 0;
+        _error   = null;
+        try
+        {
+            var qs = new List<string>();
+            if (_channelFilter != "all") qs.Add($"channel={_channelFilter}");
+            if (_activeOnly)             qs.Add("activeOnly=true");
+            var url = "api/chatbot/sessions" + (qs.Any() ? "?" + string.Join("&", qs) : "");
+
+            var resp = await Http.GetFromJsonAsync<SessionResponse>(url);
+            _rows      = resp?.Sessions ?? new();
+            _total     = resp?.Total ?? 0;
+            _active    = resp?.Active ?? 0;
+            _completed = resp?.Completed ?? 0;
+            _lastFetch = DateTime.Now;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private void ToggleAuto()
+    {
+        _timer?.Dispose();
+        if (_autoRefresh)
+        {
+            _timer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadOnce();
+                    StateHasChanged();
+                });
+            }, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private static string FormatIdle(int sec) =>
+        sec < 60   ? $"{sec}s" :
+        sec < 3600 ? $"{sec / 60}m {sec % 60}s" :
+                     $"{sec / 3600}h {(sec % 3600) / 60}m";
+
+    private static string ChannelLabel(string ch) => ch switch
+    {
+        "whatsapp" => "💬 WhatsApp",
+        "ussd"     => "☎ USSD",
+        _          => ch
+    };
+
+    private static string ChannelColor(string ch) => ch switch
+    {
+        "whatsapp" => "#075e54",
+        "ussd"     => "#2c3528",
+        _          => "var(--surface-3)"
+    };
+
+    record SessionDto(
+        string    SessionId,
+        string    Channel,
+        string    State,
+        int       Turns,
+        DateTime  StartedAt,
+        DateTime  LastActivityAt,
+        int       IdleSeconds,
+        bool      IsActive,
+        string?   PayerPhone,
+        int?      SelectedFineId,
+        string?   SelectedChannel,
+        string?   LastReceipt,
+        DateTime? PaymentPostedAt
+    );
+    record SessionResponse(int Total, int Active, int Completed, DateTime GeneratedAt, List<SessionDto> Sessions);
+}

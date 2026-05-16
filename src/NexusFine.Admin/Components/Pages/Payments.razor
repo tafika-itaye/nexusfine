@@ -94,7 +94,10 @@
                 <tbody>
                     @if (!_items.Any())
                     {
-                        <tr><td colspan="9" style="text-align:center;color:var(--text-muted-d);padding:32px">No payments match the current filters.</td></tr>
+                        <tr><td colspan="9" style="padding:0">
+                            <EmptyState Title="No payments match"
+                                        Hint="Try clearing one of the filters above, or reset the date range." />
+                        </td></tr>
                     }
                     else
                     {

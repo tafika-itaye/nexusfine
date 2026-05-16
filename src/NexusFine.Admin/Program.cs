@@ -61,6 +61,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Surface the branded 404 page on ANY unknown URL (server-side, not just
+// Blazor's client-side router). Re-execute the pipeline against /not-found
+// so the request is treated as a normal Razor render but keeps the 404
+// status code on the response.
+app.UseStatusCodePagesWithReExecute("/not-found", "?code={0}");
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -26,6 +26,7 @@ public class AuthController : ControllerBase
     // POST api/auth/login
     [AllowAnonymous]
     [HttpPost("login")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("sensitive")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.UserName) || string.IsNullOrWhiteSpace(req.Password))

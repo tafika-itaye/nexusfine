@@ -1,0 +1,29 @@
+@*
+    Reusable empty-state block. Used in data tables and lists where the
+    "no rows" message used to be a bare line of text. Pulls the SVG
+    illustration we added in img/illustrations/.
+*@
+
+<div class="empty-state">
+    <img src="@Image" alt="" />
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <div style="font-size:14px;font-weight:600;color:var(--text-on-dark);margin-top:6px">@Title</div>
+    }
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <div class="empty-state-text">@Hint</div>
+    }
+    @if (ActionLabel is not null && ActionHref is not null)
+    {
+        <a href="@ActionHref" class="btn btn-sm btn-ghost" style="margin-top:8px">@ActionLabel</a>
+    }
+</div>
+
+@code {
+    [Parameter] public string Image { get; set; } = "img/illustrations/empty-state-no-data.svg";
+    [Parameter] public string Title { get; set; } = "No data yet";
+    [Parameter] public string Hint  { get; set; } = "Nothing matches the current filters. Adjust the filters or come back later.";
+    [Parameter] public string? ActionLabel { get; set; }
+    [Parameter] public string? ActionHref  { get; set; }
+}
