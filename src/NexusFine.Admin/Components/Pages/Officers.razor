@@ -104,6 +104,30 @@
                             Active
                         </label>
                     </div>
+
+                    <!-- Photo upload — JPEG/PNG, max 5 MB. Face only, no biometric matching (D-014) -->
+                    <div class="form-group" style="grid-column:1 / -1">
+                        <label class="form-label">Officer headshot (optional)</label>
+                        <div style="display:flex;gap:14px;align-items:center">
+                            <div style="width:64px;height:64px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+                                <img src="@(_photoPreview ?? "img/officers/avatar-silhouette.svg")"
+                                     alt="" style="width:100%;height:100%;object-fit:cover" />
+                            </div>
+                            <div style="flex:1;min-width:0">
+                                <InputFile OnChange="OnPhotoSelected"
+                                           class="form-input"
+                                           accept="image/jpeg,image/png" />
+                                <div style="font-size:11px;color:var(--text-muted-d);margin-top:4px">
+                                    JPEG or PNG, max 5 MB. Face only — no biometric data is captured or stored.
+                                </div>
+                                @if (_photoError is not null)
+                                {
+                                    <div style="font-size:11px;color:var(--red-bright);margin-top:4px">⚠ @_photoError</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <div class="modal-foot">
@@ -164,7 +188,7 @@
                             <td class="mono" style="color:var(--text-muted-d)">@((i+1).ToString("D2"))</td>
                             <td>
                                 <div style="display:flex;align-items:center;gap:10px">
-                                    <img src="@AvatarFor(o)" alt="" style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);object-fit:cover;flex-shrink:0" />
+                                    <img src="@AvatarFor(o)" alt="" style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);object-fit:cover;flex-shrink:0" onerror="this.onerror=null;this.src='img/officers/avatar-silhouette.svg'" />
                                     <div>
                                         <div style="font-weight:600">@o.FullName</div>
                                         <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber · @o.Rank</div>
@@ -229,6 +253,9 @@
     {
         _form = new OfficerForm { IsActive = true };
         _modalError = null;
+        // Fresh photo state every time the modal opens
+        _photoBytes = null; _photoPreview = null; _photoContentType = null; _photoFileName = null;
+        _photoError = null;
         _modalOpen = true;
     }
 
@@ -238,6 +265,41 @@
 
     private IEnumerable<StationRef> StationsForDept() =>
         _form.DepartmentId == 0 ? _allStations : _allStations.Where(s => s.DepartmentId == _form.DepartmentId);
+
+    // ── PHOTO UPLOAD ──
+    private byte[]?  _photoBytes;
+    private string?  _photoContentType;
+    private string?  _photoFileName;
+    private string?  _photoPreview;          // data: URL for the preview circle
+    private string?  _photoError;
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        _photoError = null;
+        _photoBytes = null; _photoPreview = null; _photoContentType = null; _photoFileName = null;
+
+        var file = e.File;
+        if (file is null) return;
+
+        if (file.Size > 5_000_000)
+        {
+            _photoError = $"Too large ({file.Size / 1_000_000} MB). Max 5 MB.";
+            return;
+        }
+        if (file.ContentType is not ("image/jpeg" or "image/png"))
+        {
+            _photoError = "Only JPEG or PNG accepted.";
+            return;
+        }
+
+        await using var stream = file.OpenReadStream(maxAllowedSize: 5_000_000);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        _photoBytes       = ms.ToArray();
+        _photoContentType = file.ContentType;
+        _photoFileName    = file.Name;
+        _photoPreview     = $"data:{file.ContentType};base64,{Convert.ToBase64String(_photoBytes)}";
+    }
 
     private async Task Save()
     {
@@ -278,12 +340,37 @@
                 return;
             }
 
+            // If a photo was attached, follow up with the multipart upload.
+            // Officer-create returns { Id, BadgeNumber }; we use the Id.
+            var created = await resp.Content.ReadFromJsonAsync<CreatedOfficer>();
+            if (created is not null && _photoBytes is not null)
+            {
+                using var form = new MultipartFormDataContent();
+                using var byteContent = new ByteArrayContent(_photoBytes);
+                byteContent.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue(_photoContentType ?? "image/jpeg");
+                form.Add(byteContent, "file", _photoFileName ?? $"{created.BadgeNumber}.jpg");
+
+                var photoResp = await Http.PostAsync($"api/officers/{created.Id}/photo", form);
+                if (!photoResp.IsSuccessStatusCode)
+                {
+                    // Officer was created OK; photo failed. Surface it but
+                    // do not block the modal close.
+                    _modalError = $"Officer registered, but photo upload failed ({(int)photoResp.StatusCode}). You can upload it later.";
+                    await LoadOfficers();
+                    return;
+                }
+            }
+
             _modalOpen = false;
+            _photoBytes = null; _photoPreview = null; _photoContentType = null; _photoFileName = null;
             await LoadOfficers();
         }
         catch (Exception ex) { _modalError = ex.Message; }
         finally { _saving = false; }
     }
+
+    record CreatedOfficer(int Id, string BadgeNumber);
 
     record DeptDto(int Id, string Name, string Zone);
     record StationRef(int Id, string Code, string Name, int DepartmentId, string Zone);
@@ -316,27 +403,13 @@
         finally { _loading = false; }
     }
 
-    // Pool restricted to the proper portrait SVGs the user uploaded.
-    // The legacy avatar-male-1..3 / avatar-female-1..2 SVGs are tiny placeholders
-    // that render as a landscape/crest icon, so they're excluded.
-    private static readonly string[] _avatars = new[]
-    {
-        "img/officers/avatar-male-4.svg",
-        "img/officers/avatar-male-5.svg",
-        "img/officers/avatar-female-3.svg",
-        "img/officers/avatar-female-4.svg"
-    };
-
-    private static string AvatarFor(OfficerPerfDto o)
-    {
-        if (string.IsNullOrEmpty(o.BadgeNumber)) return "img/officers/avatar-default.svg";
-        var hash = 0;
-        foreach (var c in o.BadgeNumber) hash = unchecked(hash * 31 + c);
-        var idx = Math.Abs(hash) % _avatars.Length;
-        return _avatars[idx];
-    }
+    // D-014: real photo or single uniform silhouette. No random rotation.
+    private const string SilhouetteUrl = "img/officers/avatar-silhouette.svg";
+    private static string AvatarFor(OfficerPerfDto o) =>
+        string.IsNullOrWhiteSpace(o.PhotoUrl) ? SilhouetteUrl : o.PhotoUrl!;
 
     record OfficerPerfDto(
+        int      Id,
         string   BadgeNumber,
         string   FullName,
         string   Rank,
@@ -349,6 +422,7 @@
         int      FinesCollected,
         decimal  AmountIssued,
         decimal  AmountCollected,
-        double   CollectionRate
+        double   CollectionRate,
+        string?  PhotoUrl
     );
 }

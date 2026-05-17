@@ -163,7 +163,13 @@ public class DashboardController : ControllerBase
 public class OfficersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public OfficersController(AppDbContext db) => _db = db;
+    private readonly IWebHostEnvironment _env;
+
+    public OfficersController(AppDbContext db, IWebHostEnvironment env)
+    {
+        _db  = db;
+        _env = env;
+    }
 
     // GET api/officers
     [HttpGet]
@@ -212,6 +218,7 @@ public class OfficersController : ControllerBase
             o.LastKnownLocation,
             o.LastSyncAt,
             o.DeviceId,
+            o.PhotoUrl,
             FinesIssued      = o.Fines.Count,
             FinesCollected   = o.Fines.Count(f => f.Status == FineStatus.Paid),
             AmountIssued     = o.Fines.Sum(f => f.Amount),
@@ -348,6 +355,66 @@ public class OfficersController : ControllerBase
         return Ok(new { o.Id, o.BadgeNumber });
     }
 
+    // POST api/officers/{id}/photo
+    // Multipart upload of a face-only headshot. No biometric processing.
+    // Stored as JPEG under wwwroot/img/officers/photos/{BadgeNumber}.jpg
+    // and the relative path is recorded on Officer.PhotoUrl.
+    // Retention: see DPIA-Malawi §6 (employment + 7 years).
+    [HttpPost("{id:int}/photo")]
+    [Authorize(Roles = "Admin,Supervisor")]
+    [RequestSizeLimit(5_000_000)]
+    public async Task<IActionResult> UploadPhoto(int id, IFormFile? file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file uploaded." });
+        if (file.Length > 5_000_000)
+            return BadRequest(new { message = "Photo too large — max 5 MB." });
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext is not (".jpg" or ".jpeg" or ".png"))
+            return BadRequest(new { message = "Only JPG / JPEG / PNG allowed." });
+
+        var officer = await _db.Officers.FindAsync(id);
+        if (officer is null) return NotFound();
+
+        // Filename is the badge — replace path-hostile chars to be safe
+        var safeBadge = officer.BadgeNumber.Replace("/", "-").Replace("\\", "-").Replace(" ", "-");
+        var fileName  = $"{safeBadge}.jpg";
+        var dir       = Path.Combine(_env.WebRootPath ?? "wwwroot", "img", "officers", "photos");
+        Directory.CreateDirectory(dir);
+        var fullPath  = Path.Combine(dir, fileName);
+
+        await using (var stream = System.IO.File.Create(fullPath))
+            await file.CopyToAsync(stream);
+
+        officer.PhotoUrl  = $"img/officers/photos/{fileName}";
+        officer.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { url = officer.PhotoUrl });
+    }
+
+    // DELETE api/officers/{id}/photo
+    [HttpDelete("{id:int}/photo")]
+    [Authorize(Roles = "Admin,Supervisor")]
+    public async Task<IActionResult> DeletePhoto(int id)
+    {
+        var officer = await _db.Officers.FindAsync(id);
+        if (officer is null) return NotFound();
+        if (string.IsNullOrEmpty(officer.PhotoUrl)) return NoContent();
+
+        var rel  = officer.PhotoUrl.Replace('/', Path.DirectorySeparatorChar);
+        var path = Path.Combine(_env.WebRootPath ?? "wwwroot", rel);
+        if (System.IO.File.Exists(path))
+        {
+            try { System.IO.File.Delete(path); } catch { /* best-effort */ }
+        }
+        officer.PhotoUrl  = null;
+        officer.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     private static object MapToDto(Officer o) => new
     {
         o.Id,
@@ -369,6 +436,7 @@ public class OfficersController : ControllerBase
         o.DepartmentId,
         o.StationId,
         o.PrimaryPatrolPostId,
+        o.PhotoUrl,
         Department = o.Department is null ? null : new
         {
             o.Department.Name,

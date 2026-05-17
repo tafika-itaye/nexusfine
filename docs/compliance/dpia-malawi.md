@@ -110,7 +110,15 @@ zone. **Section 36** of the Data Protection Act 2024 is therefore not engaged.
 | Disputed fines | until resolution + 90 d | — | 10 years post-resolution |
 | Audit log (operational) | 90 d | — | indefinite |
 | Audit log (security) | 90 d | — | 7 years |
-| Photo / NFC / GPS evidence | 12 months | — | indefinite until close + 7 yrs |
+| Photo / NFC / GPS evidence (issuance) | 12 months | — | indefinite until close + 7 yrs |
+| Officer face photo (registration, D-014) | n/a (not held locally) | n/a | duration of service + 7 years |
+
+**On officer face photos (D-014).** A face-only headshot is uploaded by
+the supervisor at officer registration and used for visual identification
+only. **No biometric template is generated and no automated matching is
+performed.** §24 of the DPA, 2024 (automated decision-making with legal
+effect) is therefore not engaged. The photo is held at HQ; it is **not**
+replicated to station servers or officer devices.
 
 Auto-purge at the station is preceded by a "still-synced?" check against HQ
 to ensure no data is destroyed until confirmed received upstream.

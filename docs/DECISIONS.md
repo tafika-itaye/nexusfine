@@ -353,3 +353,66 @@ keys, and seeds 5 stations + 6 patrol posts spanning the 4 demo zones.
 - Device pairing UI (mints PairingToken, displays QR, lifecycle).
 - Per-station server endpoint health pings.
 - Reference snapshot version pinning UI (D-012 §9b.3 follow-up).
+
+---
+
+## 2026-05-17 · D-014 — Officer photos: face-only headshot; no biometrics
+
+**Context.** The admin portal initially displayed officers using a small
+pool of randomly-assigned cartoon avatars. For a system that backs
+formal traffic-fine issuance, the cartoons read as unserious and the
+random-rotation makes it impossible to identify an officer by face.
+Three options were considered:
+
+1. **Full biometric capture** (fingerprint, iris, face matching). Major
+   cost, separate hardware, large DPA-compliance surface, requires a
+   biometric module.
+2. **Face-only headshot uploaded by the supervisor at registration.**
+   No automated matching. Used purely for visual identification on the
+   admin portal and (post-Module 4c) the tablet UI.
+3. **Uniform silhouette icon only.** Cheapest, but loses the ability
+   to identify an officer at a glance.
+
+**Decision.** Ship option 2 (face-only headshot) with option 3 as the
+fallback when no photo exists yet. **Biometric capture is explicitly
+out of scope** for NexusFine; if it is required later, it lands as a
+separate module with its own DPIA addendum.
+
+**Rationale.**
+- A face photo is already part of the standard MPS warrant-card process,
+  so there is no new collection burden on the officer.
+- No matching algorithm is involved — the photo is displayed, not
+  processed, so the DPA's "automated decision-making" provisions
+  (§24 of the DPA, 2024) are not engaged.
+- Storing biometric templates would materially raise our compliance
+  surface (DPA Article 6 "special category" treatment, ACB engagement,
+  ISO 27701 readiness) without a clear pilot-phase value.
+- The Auditor General has indicated a preference for visual
+  identification of officers issuing fines, which this satisfies.
+
+**Implementation.**
+- `Officer.PhotoUrl` (nullable string, max 255) records the relative
+  path of the uploaded JPEG under `wwwroot/img/officers/photos/{badge}.jpg`.
+- New endpoint `POST /api/officers/{id}/photo` accepts multipart
+  upload (JPEG or PNG, max 5 MB). Returns the recorded URL.
+- New endpoint `DELETE /api/officers/{id}/photo` clears the photo.
+- The Register Officer modal in the admin portal exposes an optional
+  file picker with a 64-px live preview; the photo is POSTed after
+  the officer is successfully created.
+- The Home dashboard officer ranking and the Officers list now show
+  the real photo when present, else the new
+  `img/officers/avatar-silhouette.svg` (a single navy/gold uniform
+  silhouette). The legacy random-cartoon pool is **dropped**.
+
+**Retention.**
+- Photo stored for duration of the officer's service + 7 years, per the
+  DPIA-Malawi schedule. Deletion of `PhotoUrl` also deletes the file
+  on disk.
+- See `docs/compliance/dpia-malawi.md` §6 (operational evidence row).
+
+**Post-demo follow-up.**
+- Server-side image normalisation (downscale to 256x256 JPEG, strip
+  EXIF). Today's endpoint just saves what's uploaded.
+- Bulk-import path for HR system handover (CSV + photo zip).
+- Audit-log enrichment so PHOTO_UPLOADED and PHOTO_DELETED appear in
+  the Alerts feed.

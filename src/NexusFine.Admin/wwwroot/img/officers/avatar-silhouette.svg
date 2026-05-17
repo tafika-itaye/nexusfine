@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="Police officer silhouette">
+  <!-- Navy background circle (matches sidebar) -->
+  <circle cx="40" cy="40" r="40" fill="#1a2748"/>
+  <!-- Peaked-cap visor -->
+  <rect x="18" y="29" width="44" height="4" rx="1.5" fill="#0e1729"/>
+  <!-- Cap body -->
+  <path d="M22 16 Q40 8 58 16 L58 28 L22 28 Z" fill="#1a3a6e"/>
+  <!-- Cap band (gold accent) -->
+  <rect x="22" y="25" width="36" height="3" fill="#d4af37"/>
+  <!-- Cap badge -->
+  <circle cx="40" cy="19" r="2.8" fill="#d4af37"/>
+  <circle cx="40" cy="19" r="1.4" fill="#0e1729"/>
+  <!-- Head -->
+  <circle cx="40" cy="40" r="10" fill="#c9b08a"/>
+  <!-- Shoulders / uniform -->
+  <path d="M16 80 L16 60 Q16 50 28 47 L52 47 Q64 50 64 60 L64 80 Z" fill="#1a3a6e"/>
+  <!-- Collar -->
+  <path d="M35 47 L40 53 L45 47 Z" fill="#0e1729"/>
+  <!-- Shoulder epaulette stripe -->
+  <rect x="18" y="55" width="8" height="2" fill="#d4af37"/>
+  <rect x="54" y="55" width="8" height="2" fill="#d4af37"/>
+</svg>

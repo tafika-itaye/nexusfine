@@ -178,7 +178,7 @@ else
                                 <td class="mono" style="color:var(--text-muted-d)">@rank.ToString("D2")</td>
                                 <td>
                                     <div style="display:flex;align-items:center;gap:10px">
-                                        <img src="@AvatarFor(o.BadgeNumber)" alt="" style="width:32px;height:32px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);object-fit:cover;flex-shrink:0" />
+                                        <img src="@AvatarFor(o)" alt="" style="width:32px;height:32px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-mid);object-fit:cover;flex-shrink:0" onerror="this.onerror=null;this.src='img/officers/avatar-silhouette.svg'" />
                                         <div>
                                             <div style="font-weight:600">@o.FullName</div>
                                             <div class="mono" style="font-size:10px;color:var(--text-muted-d)">#@o.BadgeNumber</div>
@@ -260,25 +260,12 @@ else
         string   Offence
     );
 
-    // Pool restricted to the proper portrait SVGs the user uploaded.
-    // The original avatar-male-1..3 / avatar-female-1..2 SVGs are tiny placeholder
-    // files that render as a landscape/crest icon, so they're excluded from rotation.
-    // (PNG variants under the same names exist but are 1.2 MB each — too heavy for table rows.)
-    private static readonly string[] _avatars = new[]
-    {
-        "img/officers/avatar-male-4.svg",
-        "img/officers/avatar-male-5.svg",
-        "img/officers/avatar-female-3.svg",
-        "img/officers/avatar-female-4.svg"
-    };
-
-    private static string AvatarFor(string? badge)
-    {
-        if (string.IsNullOrEmpty(badge)) return "img/officers/avatar-default.svg";
-        var hash = 0;
-        foreach (var c in badge) hash = unchecked(hash * 31 + c);
-        return _avatars[Math.Abs(hash) % _avatars.Length];
-    }
+    // Per D-014: real face photo when one has been uploaded at registration,
+    // else a single uniform police-officer silhouette. No biometric matching;
+    // no random cartoon rotation.
+    private const string SilhouetteUrl = "img/officers/avatar-silhouette.svg";
+    private static string AvatarFor(OfficerPerfDto o) =>
+        string.IsNullOrWhiteSpace(o.PhotoUrl) ? SilhouetteUrl : o.PhotoUrl!;
 
     record OfficerPerfDto(
         string  BadgeNumber,
@@ -291,6 +278,7 @@ else
         int     FinesCollected,
         decimal AmountIssued,
         decimal AmountCollected,
-        double  CollectionRate
+        double  CollectionRate,
+        string? PhotoUrl
     );
 }

@@ -105,6 +105,7 @@ public class AppDbContext : DbContext
             e.Property(o => o.NfcTagId).HasMaxLength(50);
             e.Property(o => o.DeviceId).HasMaxLength(20);
             e.Property(o => o.LastKnownLocation).HasMaxLength(120);
+            e.Property(o => o.PhotoUrl).HasMaxLength(255);
             e.Property(o => o.Status).HasConversion<string>();
 
             e.Ignore(o => o.FullName); // computed property

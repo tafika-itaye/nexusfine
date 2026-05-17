@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Official Receipt — NexusFine</title>
+<style>
+  /* Page (A5, portrait — convenient for officer printers + thermal A5)        */
+  @page { size: A5 portrait; margin: 8mm 10mm; }
+  :root {
+    --navy: #0e1729;
+    --gold: #b58900;
+    --red:  #ce1126;
+    --grn:  #339e35;
+    --rule: #b9a26b;
+    --muted: #555;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI Variable','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    color: #111; margin: 0; padding: 14mm 12mm; background: #fff;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  .mono { font-family: 'Cascadia Mono','Cascadia Code',Consolas,'Courier New',monospace;
+          font-variant-numeric: tabular-nums slashed-zero;
+          font-feature-settings: "tnum" 1, "zero" 1; }
+
+  /* Letterhead band — Malawi flag stripe + emblem */
+  .flag { display:flex; gap:2px; margin-bottom:6px; }
+  .flag i { display:inline-block; width:46px; height:5px; border-radius:1px; }
+  .flag i.k { background:#000; } .flag i.r { background:var(--red); } .flag i.g { background:var(--grn); }
+
+  .head { display:flex; align-items:flex-start; gap:14px; border-bottom:2px solid var(--gold); padding-bottom:10px; }
+  .emblem {
+    width:62px; height:62px; flex:0 0 62px;
+    background:#fff; border:2px solid var(--gold); border-radius:50%;
+    padding:6px; display:flex; align-items:center; justify-content:center;
+  }
+  .emblem img { width:100%; height:100%; object-fit:contain; }
+  .head .title {
+    flex:1; min-width:0;
+  }
+  .eyebrow { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); }
+  h1 { margin:2px 0 2px; font-size:15px; color:var(--navy); letter-spacing:-.005em; }
+  .head .sub { font-size:10px; color:var(--muted); }
+
+  .ref-band {
+    margin-top:8px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-top: 1px dashed var(--rule); padding-top:6px;
+    font-size:10.5px;
+  }
+  .ref-band .col { line-height: 1.45; }
+  .ref-band .lbl { font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .ref-band .v { font-weight:700; color:var(--navy); }
+
+  h2 { font-size:11px; margin:14px 0 4px; color:var(--navy);
+       letter-spacing:.06em; text-transform:uppercase; }
+  table { width:100%; border-collapse:collapse; font-size:10.5px; }
+  td { padding: 3.5px 0; vertical-align:top; }
+  td.l { color:var(--muted); width:38%; }
+  td.r { font-weight:600; }
+  tr.spacer td { padding: 5px 0 0; }
+  tr.rule td { border-top: 1px dashed var(--rule); padding-top: 5px; }
+
+  .amount {
+    margin-top: 10px;
+    background: linear-gradient(135deg, var(--navy) 0%, #1a2748 100%);
+    color:#fff; padding:8px 12px; border-radius:6px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .amount .label { font-size:10px; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+  .amount .value { font-size:18px; font-weight:800; color:#ffd966;
+                   font-family:'Cascadia Mono','Cascadia Code',Consolas,monospace;
+                   font-variant-numeric: tabular-nums slashed-zero; }
+
+  .pill { display:inline-block; padding:2px 8px; border-radius:10px;
+          font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+  .pill-paid { background:#e6f5ec; color:#1b6e3c; border:1px solid #b9dec5; }
+
+  .footer { margin-top:14px; border-top:1px dashed var(--rule); padding-top:6px;
+            font-size:9px; color:var(--muted); line-height:1.5; }
+  .footer strong { color:#222; }
+
+  .qr-zone {
+    display:flex; gap:10px; align-items:flex-end; margin-top:10px;
+  }
+  .qr-zone .qr {
+    width:62px; height:62px; flex:0 0 62px; background:#f5f5f5;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid #ddd; border-radius:4px; font-size:8px; color:#999;
+  }
+  .qr-zone .note { font-size:9px; color:var(--muted); line-height:1.5; }
+
+  /* Print */
+  @media print {
+    body { padding: 0; }
+    .no-print { display:none; }
+  }
+  /* Preview-only helper */
+  .preview-controls {
+    background:#f2f2f2; padding:8px 12px; margin:-14mm -12mm 12px; font-size:11px; color:#444;
+  }
+  .preview-controls a { color:var(--navy); text-decoration:none; font-weight:600; }
+</style>
+</head>
+<body>
+
+  <!-- Preview-only header — hidden on print -->
+  <div class="preview-controls no-print">
+    <strong>Template preview</strong> — this is the receipt layout MPS issues to citizens.
+    To print: use your browser's print dialog (<a href="javascript:window.print()">Print now</a>).
+    All field values are sample placeholders.
+  </div>
+
+  <!-- Letterhead -->
+  <div class="flag"><i class="k"></i><i class="r"></i><i class="g"></i></div>
+  <div class="head">
+    <div class="emblem">
+      <!-- emblem swappable: malawi-coat-of-arms.svg OR mps-crest.png -->
+      <img src="../../src/NexusFine.API/wwwroot/img/gov/malawi-coat-of-arms.svg"
+           alt="Coat of Arms of Malawi"
+           onerror="this.onerror=null;this.src='../../src/NexusFine.API/wwwroot/img/gov/mps-crest.png'" />
+    </div>
+    <div class="title">
+      <div class="eyebrow">Republic of Malawi · Treasury</div>
+      <h1>Official Receipt — Road Traffic Fine</h1>
+      <div class="sub">Malawi Police Service · Directorate of Road Traffic and Safety Services</div>
+      <div class="sub">Issued under the Road Traffic Act (Cap. 69:01), GN&nbsp;38 / 2026</div>
+    </div>
+  </div>
+
+  <!-- Reference band -->
+  <div class="ref-band">
+    <div class="col">
+      <div class="lbl">Receipt number</div>
+      <div class="v mono">MPAY-2026-04217</div>
+    </div>
+    <div class="col">
+      <div class="lbl">Fine reference</div>
+      <div class="v mono">NXF-2026-00142</div>
+    </div>
+    <div class="col">
+      <div class="lbl">Issued (date · time)</div>
+      <div class="v mono">14 Jun 2026 · 14:37</div>
+    </div>
+  </div>
+
+  <!-- Payer + driver -->
+  <h2>Payer details</h2>
+  <table>
+    <tr><td class="l">Driver name</td>      <td class="r">Mphatso Banda</td></tr>
+    <tr><td class="l">Driver's licence</td> <td class="r mono">DL-LL-247813</td></tr>
+    <tr><td class="l">National ID</td>      <td class="r mono">NID-LL-558142</td></tr>
+    <tr><td class="l">Phone</td>            <td class="r mono">+265 991 234 567</td></tr>
+  </table>
+
+  <!-- Offence + vehicle -->
+  <h2>Offence</h2>
+  <table>
+    <tr><td class="l">Offence code</td>     <td class="r mono">OC-001 · Speeding</td></tr>
+    <tr><td class="l">Description</td>      <td class="r">Exceeding the posted speed limit by 18 km/h.<br>
+                                                       Authority: GN&nbsp;38 / 2026, Schedule 1, item 7.</td></tr>
+    <tr><td class="l">Location</td>         <td class="r">Kamuzu Highway · Mile 4 (Lilongwe)</td></tr>
+    <tr><td class="l">Issuing officer</td>  <td class="r">Sgt. Mphatso Chirwa · <span class="mono">MPS-0103</span></td></tr>
+    <tr class="rule"><td class="l">Vehicle</td>
+                                            <td class="r">Toyota Corolla · White · <span class="mono">MW-LL-3759</span></td></tr>
+  </table>
+
+  <!-- Amount -->
+  <div class="amount">
+    <div>
+      <div class="label">Amount paid</div>
+      <div style="font-size:9px; opacity:.7; margin-top:1px">via Airtel Money · trx&nbsp;<span class="mono">SIM-AIR-NXF-2026-00142</span></div>
+    </div>
+    <div class="value">MWK&nbsp;50,000</div>
+  </div>
+
+  <!-- Status -->
+  <h2 style="margin-top:14px">Settlement status</h2>
+  <table>
+    <tr><td class="l">Status</td>           <td class="r"><span class="pill pill-paid">Paid</span></td></tr>
+    <tr><td class="l">Completed at</td>     <td class="r mono">14 Jun 2026 · 14:39:08 CAT</td></tr>
+    <tr><td class="l">Settled to Treasury</td><td class="r mono">15 Jun 2026 (next banking day)</td></tr>
+  </table>
+
+  <!-- QR + verify -->
+  <div class="qr-zone">
+    <div class="qr">QR<br>placeholder</div>
+    <div class="note">
+      Scan the QR or visit
+      <strong>https://nexusfine.mw/verify/MPAY-2026-04217</strong>
+      to verify this receipt. The verification page will show the
+      same details signed by the Service Provider.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    This receipt is issued by NexusFine on behalf of the Malawi Police Service.
+    Settlement is reconciled daily with the Accountant General's office under
+    Clause&nbsp;14 of the Service Agreement.<br><br>
+    Disputes must be lodged within <strong>14 days</strong> of issuance at the
+    citizen portal <strong>nexusfine.mw/dispute</strong> or in person at the
+    issuing station. Helpline:
+    <strong>+265&nbsp;0800&nbsp;000&nbsp;NEXUS (63987)</strong>.<br><br>
+    Audit anchor: <span class="mono">sha256:8f3a2b91d4e7c…</span> · Schema v1.
+  </div>
+
+</body>
+</html>

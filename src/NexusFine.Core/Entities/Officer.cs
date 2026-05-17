@@ -25,6 +25,16 @@ public class Officer
 
     public OfficerStatus Status { get; set; } = OfficerStatus.Active;
 
+    /// <summary>
+    /// Face-only headshot captured at registration. No biometric matching is
+    /// performed — this field is purely for visual identification of the
+    /// officer in the admin and (post-Module 4c) tablet UIs. Retention
+    /// follows the DPA-2024 schedule recorded in docs/compliance/dpia-malawi.md.
+    /// Path is relative to wwwroot, e.g. "img/officers/photos/MPS-0042.jpg".
+    /// Null when no photo has been uploaded yet → falls back to silhouette.
+    /// </summary>
+    public string? PhotoUrl { get; set; }
+
     // Last known GPS position
     public double? LastLatitude { get; set; }
     public double? LastLongitude { get; set; }
